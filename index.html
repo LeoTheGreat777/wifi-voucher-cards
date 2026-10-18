@@ -26,8 +26,8 @@
         var k = (window.devicePixelRatio || 1) / baseDpr; // browser zoom since the page opened
         var uw = w * k, uh = h * k, z = 1;
         if (w > 980) {
-          // Grows with the screen so it fills about the same share of it, up to 1.8x on 4K.
-          var grow = Math.min(1.8, Math.max(1, uw / 1700));
+          // Grows with the screen so it fills about the same share of it, up to 2x on 4K.
+          var grow = Math.min(2, Math.max(1, uw / 1700));
           z = Math.max(0.7, Math.floor(Math.min(grow, uh / need, uw / 1240) * 100 + 1e-6) / 100);
         }
         root.style.zoom = z === 1 ? '' : String(z);
@@ -259,6 +259,16 @@
             <span class="muted" id="preview-note"></span>
           </div>
           <div class="preview-body"><div id="preview" class="preview"></div></div>
+          <div class="pager off" id="pager">
+            <button class="icon-btn" id="pg-prev" type="button" data-i18n-title="prevPage" data-i18n-aria="prevPage" title="Previous page" aria-label="Previous page">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="pg-num"><input id="pg-n" type="number" min="1" value="1" inputmode="numeric" data-i18n-aria="pageNumber" aria-label="Page number"> / <span id="pg-total">1</span></span>
+            <button class="icon-btn" id="pg-next" type="button" data-i18n-title="nextPage" data-i18n-aria="nextPage" title="Next page" aria-label="Next page">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="muted pg-what" id="pg-what"></span>
+          </div>
         </div>
       </section>
     </main>

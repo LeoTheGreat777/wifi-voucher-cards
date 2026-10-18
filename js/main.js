@@ -564,6 +564,7 @@ function translatePage() {
 
 function setOutput(out, save = true) {
   settings.output = out;
+  previewView = 0;
   if (save) saveSettings(settings);
   for (const b of $$('.tabs [data-out]')) b.setAttribute('aria-selected', String(b.dataset.out === out));
   for (const p of $$('.out')) p.classList.toggle('on', p.dataset.for === out);
@@ -579,12 +580,16 @@ function schedulePreview() {
   previewTimer = setTimeout(renderPreview, 80);
 }
 
-let previewObserver = null;
+let previewView = 0; // which page (A4) or pair of labels (Zebra) is shown
+let previewViews = 1;
+let previewPer = 2; // Zebra labels shown at once
 
-/** Draws preview items only when they scroll into view, so long batches stay fast. */
-function whenVisible(el, draw) {
-  el._draw = draw;
-  previewObserver.observe(el);
+/** Shows another page of the preview. */
+function goView(i) {
+  const n = Math.max(0, Math.min(previewViews - 1, i));
+  if (n === previewView) return;
+  previewView = n;
+  renderPreview();
 }
 
 async function renderPreview() {
@@ -595,72 +600,64 @@ async function renderPreview() {
   const qr = currentQr();
   const list = selected();
   const sample = !list.length;
-  const cards = sample ? (settings.output === 'a4' ? SAMPLE_A4 : SAMPLE) : list;
+  const a4 = settings.output === 'a4';
+  const cards = sample ? (a4 ? SAMPLE_A4 : SAMPLE) : list;
   const box = $('#preview');
   const note = $('#preview-note');
-  const left = box.scrollLeft;
   sizePreview();
+  const per = a4 ? A4.perPage : previewPer;
+  previewViews = Math.max(1, Math.ceil(cards.length / per));
+  previewView = Math.min(previewView, previewViews - 1);
+  const from = previewView * per;
+  const shown = cards.slice(from, from + per);
   box.textContent = '';
-  previewObserver?.disconnect();
-  previewObserver = new IntersectionObserver(
-    (entries) => {
-      for (const e of entries) {
-        if (!e.isIntersecting || token !== previewToken) continue;
-        previewObserver.unobserve(e.target);
-        e.target._draw();
-      }
-    },
-    { root: box, rootMargin: '0px 800px' }
-  );
+  box.className = a4 ? 'preview sheet-mode' : 'preview zebra';
 
-  if (settings.output === 'a4') {
-    box.className = 'preview sheet-mode';
-    const pages = Math.ceil(cards.length / A4.perPage);
-    for (let p = 0; p < pages; p++) {
-      const div = document.createElement('div');
-      div.className = 'sheet-shot';
-      whenVisible(div, () => {
-        div.innerHTML = sheetSvg(cards.slice(p * A4.perPage, (p + 1) * A4.perPage), settings, {
-          measure,
-          logo,
-          qr,
-          width: '100%',
-          height: '100%',
-          pageLabel: pages > 1 ? t('pageOf', { p: p + 1, n: pages }) : '',
-          cutNote: t('cutNote'),
-        });
-      });
-      box.appendChild(div);
-    }
+  if (a4) {
+    const div = document.createElement('div');
+    div.className = 'sheet-shot';
+    div.innerHTML = sheetSvg(shown, settings, {
+      measure,
+      logo,
+      qr,
+      width: '100%',
+      height: '100%',
+      pageLabel: previewViews > 1 ? t('pageOf', { p: previewView + 1, n: previewViews }) : '',
+      cutNote: t('cutNote'),
+    });
+    box.appendChild(div);
     note.innerHTML = sample
       ? `<span class="sample-badge">${t('sample')}</span> ${t('sampleA4')}`
-      : pages > 1
-        ? t('scrollAll', { n: plural(pages, 'page') })
+      : previewViews > 1
+        ? t('scrollAll', { n: plural(previewViews, 'page') })
         : '';
-    box.scrollLeft = left;
-    return;
-  }
-
-  box.className = 'preview zebra';
-  const dpmm = dotsPerMm(settings.dpi);
-  note.innerHTML = sample
-    ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}`
-    : t('zebraNote') + (cards.length > 4 ? ' · ' + t('scrollAll', { n: plural(cards.length, 'label') }) : '');
-  for (const v of cards) {
-    const shot = document.createElement('div');
-    shot.className = 'card-shot thermal';
-    shot.title = `${v.user}${v.pass ? ' / ' + v.pass : ''}`;
-    whenVisible(shot, () => {
+  } else {
+    const dpmm = dotsPerMm(settings.dpi);
+    note.innerHTML = sample
+      ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}`
+      : t('zebraNote') + (previewViews > 1 ? ' · ' + t('scrollAll', { n: plural(cards.length, 'label') }) : '');
+    for (const v of shown) {
+      const shot = document.createElement('div');
+      shot.className = 'card-shot thermal';
+      shot.title = `${v.user}${v.pass ? ' / ' + v.pass : ''}`;
       const bmp = rasterCard(v, settings, { dpmm, logo: logo?.img || null, logoStyle: settings.logoStyle, qr, logoCache: logoBitsCache });
-      // A small 1-bit PNG uses far less memory than keeping a canvas per label.
       const img = new Image();
       img.alt = '';
       img.src = bitmapToCanvas(bmp).toDataURL('image/png');
       shot.appendChild(img);
-    });
-    box.appendChild(shot);
+      box.appendChild(shot);
+    }
   }
-  box.scrollLeft = left;
+
+  // The page bar: arrows, a page number to type, and the total.
+  const pager = $('#pager');
+  pager.classList.toggle('off', previewViews < 2);
+  $('#pg-n').value = String(previewView + 1);
+  $('#pg-n').max = String(previewViews);
+  $('#pg-total').textContent = String(previewViews);
+  $('#pg-what').textContent = a4 ? '' : t('labelsRange', { a: from + 1, b: from + shown.length, n: cards.length });
+  $('#pg-prev').disabled = previewView === 0;
+  $('#pg-next').disabled = previewView >= previewViews - 1;
 }
 
 // ---------- outputs ----------
@@ -793,18 +790,24 @@ function fitLayout() {
   sizePreview();
 }
 
-/** Sizes the pages to the preview box: A4 pages as tall as the box, labels in rows that fill it. */
+/** Sizes the preview to its box: an A4 page as tall as the box, Zebra labels as wide as that page. */
 function sizePreview() {
   const body = $('.preview-body');
   const box = $('#preview');
-  const ph = Math.max(160, body.clientHeight - 16);
-  box.style.setProperty('--ph', ph + 'px');
-  const gap = 16;
-  const rows = Math.max(1, Math.round((ph + gap) / (165 + gap)));
-  let ch = (ph - (rows - 1) * gap) / rows;
-  const cw = Math.min(Math.floor(ch * 90 / 50), Math.max(200, body.clientWidth - 12));
-  box.style.setProperty('--rows', String(rows));
+  const h = Math.max(160, body.clientHeight - 4);
+  const w = Math.max(160, body.clientWidth - 4);
+  const pageW = Math.min(w, h * 210 / 297);
+  box.style.setProperty('--ph', Math.floor(pageW * 297 / 210) + 'px');
+  // Labels are about as wide as an A4 page in the same box, so both look like the same scale,
+  // but never so small that the text is hard to read.
+  const cw = Math.floor(Math.min(w, (h - 8) * 90 / 50, Math.max(pageW, 260)));
+  const ch = cw * 50 / 90;
+  const per = Math.max(1, Math.min(3, Math.floor((h + 14) / (ch + 14))));
   box.style.setProperty('--cw', cw + 'px');
+  if (per !== previewPer) {
+    previewPer = per;
+    schedulePreview();
+  }
 }
 
 /** Asks a yes/no question inside the page, in the given box. Resolves to true for yes. */
@@ -947,17 +950,38 @@ function init() {
     for (const el of $$('.col-add > .panel:first-child, .design .fields, .col-right > .panel, .topbar, .foot')) ro.observe(el);
     new ResizeObserver(sizePreview).observe($('.preview-body'));
   }
-  // A mouse wheel scrolls the preview sideways, page by page.
-  const box = $('#preview');
-  box.addEventListener(
+  // Page bar, mouse wheel and arrow keys turn the preview pages.
+  $('#pg-prev').addEventListener('click', () => goView(previewView - 1));
+  $('#pg-next').addEventListener('click', () => goView(previewView + 1));
+  $('#pg-n').addEventListener('change', (e) => goView((parseInt(e.target.value, 10) || 1) - 1));
+  const stage = $('.preview-body');
+  let wheelSum = 0;
+  let wheelAt = 0;
+  stage.addEventListener(
     'wheel',
     (e) => {
-      if (e.ctrlKey || Math.abs(e.deltaX) >= Math.abs(e.deltaY) || box.scrollWidth <= box.clientWidth) return;
+      if (e.ctrlKey || previewViews < 2) return;
       e.preventDefault();
-      box.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? box.clientWidth : 1);
+      const d = (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * (e.deltaMode ? 40 : 1);
+      wheelSum += d;
+      const now = Date.now();
+      // One page per wheel notch; a touchpad's many small moves add up to one page.
+      if (Math.abs(wheelSum) < 50 || now - wheelAt < 180) return;
+      goView(previewView + Math.sign(wheelSum));
+      wheelSum = 0;
+      wheelAt = now;
     },
     { passive: false }
   );
+  stage.tabIndex = 0;
+  stage.addEventListener('keydown', (e) => {
+    const k = { ArrowLeft: -1, ArrowUp: -1, PageUp: -1, ArrowRight: 1, ArrowDown: 1, PageDown: 1 }[e.key];
+    if (k) {
+      e.preventDefault();
+      goView(previewView + k);
+    } else if (e.key === 'Home') goView(0);
+    else if (e.key === 'End') goView(previewViews - 1);
+  });
   fitLayout();
   if (document.fonts) document.fonts.addEventListener?.('loadingdone', schedulePreview);
   schedulePreview();

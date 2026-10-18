@@ -198,17 +198,22 @@ a { color: var(--link); }
 .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 
 /* The columns are as tall as their content (main.js sets --layout-h) and the print column matches
-   the others. Any spare window height goes evenly above and below, so nothing looks stretched. */
+   the others, right under the header. */
 html[data-cols="3"] .layout {
-  flex: none; height: var(--layout-h, auto); margin-block: auto;
+  flex: none; height: var(--layout-h, auto);
   grid-template-columns: 360px 380px minmax(0, 1fr);
   align-items: stretch;
 }
 /* Opening the code generator or printer settings can make a column taller than the window;
    then only that column scrolls. */
 html[data-cols="3"] .col { min-height: 0; overflow-y: auto; scrollbar-width: thin; margin: -6px -6px 0; padding: 6px 6px 8px; }
+/* The voucher list always stays in view: when "Paste many" or the generator is open,
+   the Add vouchers box scrolls inside itself instead of pushing the list away. */
+html[data-cols="3"] .col-add { overflow: visible; }
+html[data-cols="3"] .col-add > .panel:first-child { flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+html[data-cols="3"] .vouchers { flex: none; }
 html[data-cols="3"] .preview-wrap { min-height: 240px; }
-html[data-cols="3"] .vouchers.has-items { flex: 1 1 0; min-height: 150px; display: flex; flex-direction: column; }
+html[data-cols="3"] .vouchers.has-items { flex: 1 1 0; min-height: 230px; display: flex; flex-direction: column; }
 html[data-cols="3"] .vlist-wrap { flex: 1 1 0; min-height: 0; }
 html[data-cols="3"] .vlist { position: absolute; inset: 0 -6px; margin: 0; max-height: none; }
 html[data-cols="3"] .col-right > .panel { flex: none; }
@@ -429,25 +434,29 @@ input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; 
 /* The pages sit side by side and scroll sideways. Each one is as tall as the box (main.js sets --ph). */
 .preview-body { position: relative; height: clamp(300px, calc(var(--vh, 100vh) - 380px), 600px); }
 .preview {
-  position: absolute; inset: -6px; padding: 6px 6px 0;
-  display: grid; grid-auto-flow: column; gap: 16px;
-  grid-template-rows: repeat(var(--rows, 2), max-content); grid-auto-columns: var(--cw, 300px);
-  align-content: start; justify-content: start;
-  overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; overscroll-behavior-x: contain;
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+  overflow: hidden;
 }
 .preview .card-shot img { width: 100%; height: 100%; display: block; }
 .preview .card-shot {
-  background: #fff; border-radius: 6px; overflow: hidden; line-height: 0;
+  flex: none; width: var(--cw, 300px); background: #fff; border-radius: 6px; overflow: hidden; line-height: 0;
   box-shadow: var(--card-shadow); aspect-ratio: 90 / 50;
 }
 .preview .card-shot > * { width: 100%; height: 100%; display: block; }
 .preview .thermal { background: #fdfdfb; }
-.preview.sheet-mode { display: flex; gap: 20px; }
 .sheet-shot {
   flex: none; height: var(--ph, 400px); aspect-ratio: 210 / 297; background: #fff;
   box-shadow: var(--card-shadow); position: relative; overflow: hidden; border-radius: 3px;
 }
 .sheet-shot > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.preview-body:focus-visible { outline-offset: 4px; border-radius: 6px; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; min-height: 36px; flex-wrap: wrap; }
+.pager.off { visibility: hidden; }
+.pager .icon-btn:disabled { opacity: .35; cursor: default; }
+.pg-num { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pg-num input { width: 64px; text-align: center; padding: 5px 6px; }
+.pg-what { font-size: 12.5px; }
 .sample-badge { display: inline-block; background: var(--badge); color: var(--badge-text); font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 6px; }
 
 /* ---------- Questions asked inside the page ---------- */
