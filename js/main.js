@@ -435,10 +435,15 @@ function bindForm() {
 
 // ---------- logos ----------
 
+// Each built-in logo brings its own card colours (accent, text).
+const BRAND_COLOURS = { builtin: ['#7dba00', '#002e63'], 'builtin-cpw': ['#58595b', '#710030'] };
+
 function setLogo(id) {
   settings.logo = id;
+  if (BRAND_COLOURS[id]) [settings.accent, settings.ink] = BRAND_COLOURS[id];
   saveSettings(settings);
-  renderLogos();
+  if (BRAND_COLOURS[id]) fillForm(); // shows the new colours (and redraws the logos)
+  else renderLogos();
   schedulePreview();
 }
 
