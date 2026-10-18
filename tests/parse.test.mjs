@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseVouchers, parseBest, parseLines, humanizeExpiry } from '../js/parse.js';
+import { parseVouchers, parseBest, parseLines, parseDuration } from '../js/parse.js';
 
 // Made-up vouchers in the layout a FortiGate printout uses.
 const FORTI_LINES = `User ID    guest0001
@@ -22,7 +22,7 @@ const pairs = (r) => r.vouchers.map((v) => `${v.user}/${v.pass}`);
 test('FortiGate text with labels and values on one line', () => {
   const r = parseVouchers(FORTI_LINES);
   assert.deepEqual(pairs(r), ['guest0001/abcd2345', 'guest0002/efgh6789']);
-  assert.equal(r.validity, '12 hours');
+  assert.deepEqual(r.validity, { d: 0, h: 12, m: 0 });
 });
 
 test('picks the reading order that pairs vouchers correctly', () => {
@@ -52,9 +52,17 @@ test('removes duplicates', () => {
   assert.deepEqual(pairs(r), ['a/1', 'b/2']);
 });
 
-test('expiry in plain words', () => {
-  assert.equal(humanizeExpiry('12 hour(s) and 0 minute(s)'), '12 hours');
-  assert.equal(humanizeExpiry('1 hour(s) and 30 minute(s)'), '1 hour 30 minutes');
-  assert.equal(humanizeExpiry('1 day(s)'), '1 day');
-  assert.equal(humanizeExpiry('never'), '');
+test('reads durations in English, Greek and Romanian', () => {
+  assert.deepEqual(parseDuration('12 hour(s) and 0 minute(s)'), { d: 0, h: 12, m: 0 });
+  assert.deepEqual(parseDuration('1 hour(s) and 30 minute(s)'), { d: 0, h: 1, m: 30 });
+  assert.deepEqual(parseDuration('1 day(s)'), { d: 1, h: 0, m: 0 });
+  assert.deepEqual(parseDuration('12 ώρα(ες) και 0 λεπτό(ά)'), { d: 0, h: 12, m: 0 });
+  assert.deepEqual(parseDuration('1 oră și 30 de minute'), { d: 0, h: 1, m: 30 });
+  assert.deepEqual(parseDuration('12 ore'), { d: 0, h: 12, m: 0 });
+  assert.equal(parseDuration('never'), null);
+});
+
+test('Greek and Romanian labels', () => {
+  assert.deepEqual(pairs(parseVouchers('Όνομα χρήστη: guest01\nΚωδικός πρόσβασης: abc123\n')), ['guest01/abc123']);
+  assert.deepEqual(pairs(parseVouchers('Utilizator guest02\nParolă xyz789\nExpirare 12 ore\n')), ['guest02/xyz789']);
 });

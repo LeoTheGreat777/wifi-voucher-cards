@@ -8,11 +8,13 @@ Turn guest Wi-Fi vouchers into good-looking cards, ready to hand out.
 
 Everything runs in the browser. PDFs are read on your computer and nothing is uploaded anywhere.
 
+The app and the cards are available in **English, Greek and Romanian**. The app picks the browser's language, and you can switch with EN / ΕΛ / RO at the top. The card language is set separately under *Card design*.
+
 ## Using it
 
 1. Open the site.
 2. Drop the voucher PDF on the page (or type/paste the vouchers). The validity line ("Valid for 12 hours") is filled in from the PDF when it has one.
-3. Adjust the card if you like: title, notes, colours, logo, and an optional QR code that joins the Wi-Fi network.
+3. Adjust the card if you like: card language, title, notes, colours, logo, and an optional QR code that joins the Wi-Fi network. Logos you add are saved in your browser so you can switch between them, and you can delete them. With *No logo* the card shows a Wi-Fi sign next to the title.
 4. Pick the output:
    - **Zebra label** → *Download ZPL file* and send it to the printer (see below), or *Print with driver*.
    - **A4 sheet** → *Print A4 / save as PDF*. Print at 100% (Actual size) with background graphics on.
@@ -42,6 +44,16 @@ If you print with the driver instead, set the paper size to 90 × 50 mm, scale 1
 
 Scanned PDFs (pictures of text) can't be read; type those vouchers in instead.
 
+## Hosting on your own domain
+
+The site is plain static files on GitHub Pages. To use a subdomain such as `wifi.example.com`:
+
+1. At your DNS provider, add a `CNAME` record for `wifi` that points to `leothegreat777.github.io`.
+2. In the repo, open **Settings → Pages**, enter the domain under *Custom domain* and save. Once the DNS check passes, tick **Enforce HTTPS**.
+3. Optional but recommended: verify the domain under your GitHub account's **Settings → Pages**, so nobody else can claim it.
+
+If a FortiGate web filter blocks a new domain, submit it to FortiGuard for rating (https://www.fortiguard.com/webfilter, category *Information Technology*), or add a Web Rating Override on your own FortiGate for an immediate fix.
+
 ## Development
 
 No build step. Serve the folder with any static web server and open it:
@@ -58,6 +70,8 @@ npm test                      # parser and ZPL tests (Node 20+)
 | `js/card.js` | The card layout (SVG, in millimetres) and the A4 sheet |
 | `js/raster.js` | Draws a card as 1-bit dots for the Zebra |
 | `js/zpl.js` | Builds compressed ZPL (`^GFA` graphic fields) |
+| `js/i18n.js` | English, Greek and Romanian text |
+| `js/settings.js` | Saved design, printer settings and logos |
 | `js/main.js` | The page |
 
 ## Credits

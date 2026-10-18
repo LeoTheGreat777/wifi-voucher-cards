@@ -1,16 +1,15 @@
-// Card design and printer settings, saved in this browser only.
+// Card design, printer settings and saved logos, kept in this browser only.
+import { CARD_TEXT, validityLine } from './i18n.js';
 
-export const DEFAULTS = Object.freeze({
-  title: 'Guest Wi-Fi',
-  subtitle: 'Valid for 12 hours',
-  footer: 'Connect to the guest network and sign in with the details above.',
-  userLabel: 'USERNAME',
-  passLabel: 'PASSWORD',
-  codeLabel: 'CODE',
+export const BUILTIN_LOGOS = [{ id: 'builtin', name: 'Hellenic Cables', data: 'assets/logo.png', builtin: true }];
+
+const BASE = Object.freeze({
+  uiLang: 'en',
+  lang: 'en', // card language
+  validity: { d: 0, h: 12, m: 0 },
   accent: '#7dba00',
   ink: '#002e63',
-  logo: 'builtin', // 'builtin' | 'custom' | 'none'
-  customLogo: '', // data URL
+  logo: 'builtin', // 'none', 'builtin' or the id of a saved logo
   logoStyle: 'dither', // 'dither' | 'threshold'
   qr: false,
   ssid: '',
@@ -25,10 +24,18 @@ export const DEFAULTS = Object.freeze({
   output: 'zebra', // 'zebra' | 'a4'
 });
 
-export const BUILTIN_LOGO = 'assets/logo.png';
+/** The card texts for a language, with the validity line filled in. */
+export function cardTextFor(lang, validity) {
+  return { ...CARD_TEXT[lang], subtitle: validityLine(lang, validity) };
+}
+
+export function defaults(lang = 'en') {
+  return { ...BASE, uiLang: lang, lang, ...cardTextFor(lang, BASE.validity) };
+}
 
 const KEY = 'wifi-voucher-cards.settings.v1';
 const LIST_KEY = 'wifi-voucher-cards.vouchers.v1';
+const LOGOS_KEY = 'wifi-voucher-cards.logos.v1';
 
 function safe(fn, fallback) {
   try {
@@ -38,9 +45,18 @@ function safe(fn, fallback) {
   }
 }
 
-export function loadSettings() {
-  const saved = safe(() => JSON.parse(localStorage.getItem(KEY) || '{}'), {});
-  return { ...DEFAULTS, ...saved };
+export function loadSettings(detectedLang) {
+  const saved = safe(() => JSON.parse(localStorage.getItem(KEY) || 'null'), null);
+  if (!saved) return defaults(detectedLang);
+  const s = { ...defaults(saved.lang || 'en'), ...saved };
+  // Older versions kept a single uploaded logo in the settings.
+  if (s.customLogo) {
+    const id = addLogo('My logo', s.customLogo);
+    if (s.logo === 'custom') s.logo = id || 'builtin';
+    delete s.customLogo;
+  }
+  if (s.logo === 'custom') s.logo = 'builtin';
+  return s;
 }
 
 export function saveSettings(s) {
@@ -54,4 +70,36 @@ export function loadVouchers() {
 
 export function saveVouchers(list) {
   safe(() => sessionStorage.setItem(LIST_KEY, JSON.stringify(list)));
+}
+
+// ---------- saved logos ----------
+
+/** @returns {Array<{id: string, name: string, data: string, builtin?: boolean}>} */
+export function listLogos() {
+  const saved = safe(() => JSON.parse(localStorage.getItem(LOGOS_KEY) || '[]'), []);
+  return [...BUILTIN_LOGOS, ...saved];
+}
+
+export function findLogo(id) {
+  return listLogos().find((l) => l.id === id) || null;
+}
+
+/** Saves a logo and returns its id, or null when the browser has no room left. */
+export function addLogo(name, data) {
+  const saved = listLogos().filter((l) => !l.builtin);
+  const existing = saved.find((l) => l.data === data);
+  if (existing) return existing.id;
+  const id = 'logo-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  saved.push({ id, name: String(name || 'Logo').slice(0, 60), data });
+  try {
+    localStorage.setItem(LOGOS_KEY, JSON.stringify(saved));
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+export function deleteLogo(id) {
+  const saved = listLogos().filter((l) => !l.builtin && l.id !== id);
+  safe(() => localStorage.setItem(LOGOS_KEY, JSON.stringify(saved)));
 }

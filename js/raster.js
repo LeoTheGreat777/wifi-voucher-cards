@@ -1,5 +1,5 @@
 // Draws a card as a 1-bit bitmap at the printer's resolution (browser only).
-import { CARD_W, CARD_H, FONT_SANS, FONT_MONO, layoutCard } from './card.js';
+import { CARD_W, CARD_H, FONT_SANS, FONT_MONO, WIFI_PATH, layoutCard } from './card.js';
 
 const measureCtx = document.createElement('canvas').getContext('2d');
 
@@ -93,8 +93,23 @@ export function rasterCard(v, s, o) {
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   };
 
-  text(L.title.text, L.title.x, L.title.y, L.title.font, 'right');
-  text(L.subtitle.text, L.subtitle.x, L.subtitle.y, L.subtitle.font, 'right');
+  const align = (a) => (a === 'end' ? 'right' : 'left');
+  text(L.title.text, L.title.x, L.title.y, L.title.font, align(L.title.anchor));
+  text(L.subtitle.text, L.subtitle.x, L.subtitle.y, L.subtitle.font, align(L.subtitle.anchor));
+
+  if (L.icon) {
+    const s32 = (L.icon.size * k) / 32;
+    ctx.save();
+    ctx.translate(L.icon.x * k, L.icon.y * k);
+    ctx.scale(s32, s32);
+    ctx.lineWidth = 3.2;
+    ctx.lineCap = 'round';
+    ctx.stroke(new Path2D(WIFI_PATH));
+    ctx.beginPath();
+    ctx.arc(16, 24, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
 
   const b = L.box;
   ctx.lineWidth = Math.max(2, Math.round(0.4 * k));

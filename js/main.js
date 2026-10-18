@@ -3,7 +3,8 @@ import { cardSvg, sheetSvg, A4 } from './card.js';
 import { measure, loadFonts, rasterCard, bitmapToCanvas } from './raster.js';
 import { labelZpl, dotsPerMm } from './zpl.js';
 import { makeQr, wifiPayload } from './qr.js';
-import { DEFAULTS, BUILTIN_LOGO, loadSettings, saveSettings, loadVouchers, saveVouchers } from './settings.js';
+import { defaults, cardTextFor, loadSettings, saveSettings, loadVouchers, saveVouchers, listLogos, findLogo, addLogo, deleteLogo } from './settings.js';
+import { LANGS, detectLang, tr, applyI18n, count, formatDuration } from './i18n.js';
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -14,7 +15,7 @@ const SAMPLE = [
   { user: 'user0162', pass: '3bvxeqx7' },
 ];
 
-let settings = loadSettings();
+let settings = loadSettings(detectLang());
 /** @type {Array<{user: string, pass: string, on: boolean}>} */
 let vouchers = loadVouchers();
 
@@ -31,7 +32,9 @@ function toast(msg, isError = false) {
 }
 
 const selected = () => vouchers.filter((v) => v.on && v.user);
-const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+/** Text in the app's language. */
+const t = (key, vars) => tr(settings.uiLang, key, vars);
+const plural = (n, noun) => count(settings.uiLang, n, noun);
 const nextFrame = () => new Promise((r) => setTimeout(r, 0));
 
 function persist() {
@@ -44,9 +47,7 @@ const logoCache = new Map(); // href -> Promise<HTMLImageElement|null>
 const logoBitsCache = new Map();
 
 function logoHref() {
-  if (settings.logo === 'builtin') return BUILTIN_LOGO;
-  if (settings.logo === 'custom' && settings.customLogo) return settings.customLogo;
-  return null;
+  return settings.logo === 'none' ? null : findLogo(settings.logo)?.data || null;
 }
 
 function loadImage(href) {
@@ -79,11 +80,12 @@ function readLogoFile(file) {
     fr.onerror = () => reject(fr.error);
     fr.onload = () => {
       const img = new Image();
-      img.onerror = () => reject(new Error('That image could not be opened.'));
+      img.onerror = () => reject(new Error(t('imgFail')));
       img.onload = () => {
         const w0 = img.naturalWidth || 600;
         const h0 = img.naturalHeight || 300;
-        const k = Math.min(1, 1000 / Math.max(w0, h0));
+        // Big enough for a crisp print, small enough to keep several in the browser.
+        const k = Math.min(1, 800 / Math.max(w0, h0));
         const c = document.createElement('canvas');
         c.width = Math.round(w0 * k);
         c.height = Math.round(h0 * k);
@@ -128,11 +130,11 @@ function renderList() {
     row.className = 'vrow' + (v.on ? '' : ' off');
     row.setAttribute('role', 'listitem');
     row.innerHTML = `
-      <input type="checkbox" aria-label="Print this voucher">
+      <input type="checkbox" aria-label="${t('printThis')}">
       <span class="n">${i + 1}</span>
-      <input class="u" aria-label="Username" spellcheck="false">
-      <input class="p" aria-label="Password" spellcheck="false" placeholder="(no password)">
-      <button class="del" type="button" aria-label="Remove" title="Remove">×</button>`;
+      <input class="u" aria-label="${t('phUser')}" spellcheck="false">
+      <input class="p" aria-label="${t('phPass')}" spellcheck="false" placeholder="${t('noPassword')}">
+      <button class="del" type="button" aria-label="${t('remove')}" title="${t('remove')}">×</button>`;
     const [cb, u, p] = $$('input', row);
     cb.checked = v.on;
     u.value = v.user;
@@ -169,16 +171,17 @@ function renderList() {
 
 function updateCounts() {
   const n = selected().length;
-  $('#count').textContent = vouchers.length === n ? String(n) : `${n} of ${vouchers.length}`;
+  $('#count').textContent = vouchers.length === n ? String(n) : `${n} / ${vouchers.length}`;
   const allOn = vouchers.length && vouchers.every((v) => v.on);
-  $('#toggle-all').textContent = allOn ? 'Select none' : 'Select all';
+  $('#toggle-all').textContent = allOn ? t('selectNone') : t('selectAll');
   $('#toggle-all').hidden = !vouchers.length;
   $('#clear-all').hidden = !vouchers.length;
   const pages = Math.ceil(n / A4.perPage);
-  $('#a4-info').textContent = n ? `${plural(n, 'card')} on ${plural(pages, 'page')}` : '';
+  $('#a4-info').textContent = n ? t('a4Info', { cards: plural(n, 'card'), pages: plural(pages, 'page') }) : '';
   const labels = n * Math.max(1, settings.copies || 1);
   for (const id of ['#dl-zpl', '#copy-zpl', '#print-label', '#print-a4']) $(id).disabled = !n;
-  $('#dl-zpl').lastChild.textContent = n ? ` Download ZPL (${plural(labels, 'label')})` : ' Download ZPL file';
+  const dl = $('#dl-zpl-label');
+  if (dl) dl.textContent = n ? t('dlZplN', { n: plural(labels, 'label') }) : t('dlZpl');
 }
 
 // ---------- import ----------
@@ -186,7 +189,7 @@ function updateCounts() {
 async function importFiles(files) {
   let total = 0;
   let skipped = 0;
-  let validity = '';
+  let validity = null;
   for (const file of files) {
     try {
       let texts;
@@ -194,7 +197,7 @@ async function importFiles(files) {
         const { pdfToText } = await import('./pdf-import.js');
         const t = await pdfToText(new Uint8Array(await file.arrayBuffer()));
         if (!t.stream.trim()) {
-          toast(`“${file.name}” has no text in it (is it a scan?). Type the vouchers in instead.`, true);
+          toast(t('noText', { f: file.name }), true);
           continue;
         }
         texts = [t.stream, t.lines];
@@ -203,7 +206,7 @@ async function importFiles(files) {
       }
       const res = parseBest(texts);
       if (!res.vouchers.length) {
-        toast(`No vouchers found in “${file.name}”.`, true);
+        toast(t('noneFound', { f: file.name }), true);
         continue;
       }
       const r = addVouchers(res.vouchers);
@@ -212,20 +215,21 @@ async function importFiles(files) {
       validity = validity || res.validity;
     } catch (err) {
       console.error(err);
-      toast(`Could not read “${file.name}”: ${err.message || err}`, true);
+      toast(t('readFail', { f: file.name, e: err.message || err }), true);
       return;
     }
   }
   if (!total && !skipped) return;
-  let msg = `Added ${plural(total, 'voucher')}`;
-  if (skipped) msg += ` (${skipped} already in the list)`;
+  let msg = t('added', { n: plural(total, 'voucher') });
+  if (skipped) msg += ' ' + t('alreadyIn', { n: skipped });
   if (validity) {
-    const sub = `Valid for ${validity}`;
+    settings.validity = validity;
+    const sub = cardTextFor(settings.lang, validity).subtitle;
     if (settings.subtitle !== sub) {
       settings.subtitle = sub;
       saveSettings(settings);
       fillForm();
-      msg += ` · validity set to ${validity}`;
+      msg += ' · ' + t('validitySet', { v: formatDuration(settings.uiLang, validity) });
     }
   }
   toast(msg);
@@ -243,8 +247,10 @@ function fillForm() {
   for (const el of $$('[data-show]')) el.textContent = settings[el.dataset.show];
   document.body.classList.toggle('show-qr', !!settings.qr);
   const p = [`${settings.dpi} dpi`];
-  if (settings.darkness !== '') p.push(`darkness ${settings.darkness}`);
-  if (settings.offsetX || settings.offsetY) p.push('shifted');
+  if (settings.darkness !== '') p.push(t('darknessN', { n: settings.darkness }));
+  if (settings.offsetX || settings.offsetY) p.push(t('shifted'));
+  $('#card-lang').value = settings.lang;
+  renderLogos();
   $('#printer-summary').textContent = `· ${p.join(', ')}`;
   setOutput(settings.output, false);
 }
@@ -255,10 +261,7 @@ function bindForm() {
     const ev = el.tagName === 'SELECT' || el.type === 'checkbox' ? 'change' : 'input';
     el.addEventListener(ev, async () => {
       let val = el.type === 'checkbox' ? el.checked : el.value;
-      if ('num' in el.dataset) val = val === '' ? DEFAULTS[k] : Number(val);
-      if (k === 'logo' && val === 'custom' && !settings.customLogo) {
-        $('#logo-file').click();
-      }
+      if ('num' in el.dataset) val = val === '' ? defaults()[k] : Number(val);
       settings[k] = val;
       saveSettings(settings);
       for (const s of $$(`[data-show="${k}"]`)) s.textContent = val;
@@ -271,33 +274,131 @@ function bindForm() {
   $('#logo-file').addEventListener('change', async (e) => {
     const f = e.target.files[0];
     e.target.value = '';
-    if (!f) {
-      if (!settings.customLogo) {
-        settings.logo = 'builtin';
-        fillForm();
-      }
-      return;
-    }
+    if (!f) return;
     try {
-      settings.customLogo = await readLogoFile(f);
-      settings.logo = 'custom';
-      saveSettings(settings);
-      fillForm();
-      schedulePreview();
-      toast('Logo updated');
+      const id = addLogo(f.name.replace(/\.[a-z0-9]+$/i, ''), await readLogoFile(f));
+      if (!id) {
+        toast(t('logoFull'), true);
+        return;
+      }
+      setLogo(id);
+      toast(t('logoSaved'));
     } catch (err) {
       toast(err.message, true);
     }
   });
-  $('#reset-design').addEventListener('click', () => {
-    const keep = Object.fromEntries(
-      ['dpi', 'darkness', 'speed', 'offsetX', 'offsetY', 'copies', 'output', 'customLogo'].map((k) => [k, settings[k]])
-    );
-    settings = { ...DEFAULTS, ...keep };
+  $('#card-lang').addEventListener('change', (e) => {
+    settings.lang = e.target.value;
+    Object.assign(settings, cardTextFor(settings.lang, settings.validity));
     saveSettings(settings);
     fillForm();
     schedulePreview();
   });
+  $('#reset-design').addEventListener('click', () => {
+    const keep = Object.fromEntries(
+      ['uiLang', 'lang', 'validity', 'dpi', 'darkness', 'speed', 'offsetX', 'offsetY', 'copies', 'output'].map((k) => [k, settings[k]])
+    );
+    settings = { ...defaults(settings.lang), ...keep, ...cardTextFor(settings.lang, settings.validity) };
+    saveSettings(settings);
+    fillForm();
+    schedulePreview();
+  });
+}
+
+// ---------- logos ----------
+
+function setLogo(id) {
+  settings.logo = id;
+  saveSettings(settings);
+  renderLogos();
+  schedulePreview();
+}
+
+/** The logo picker: no logo, the built-in one, saved ones (deletable) and an add button. */
+function renderLogos() {
+  const box = $('#logos');
+  box.textContent = '';
+  const opt = (id, inner, label) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'logo-opt';
+    b.setAttribute('role', 'radio');
+    b.setAttribute('aria-checked', String(settings.logo === id));
+    b.title = label;
+    b.innerHTML = inner;
+    b.addEventListener('click', () => setLogo(id));
+    return b;
+  };
+  box.appendChild(
+    opt('none', `<svg viewBox="0 0 32 32" class="wifi-mini" aria-hidden="true"><path d="M6 13.5a14 14 0 0 1 20 0M9.8 17.3a8.6 8.6 0 0 1 12.4 0M13.5 21a3.4 3.4 0 0 1 5 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><circle cx="16" cy="24" r="2" fill="currentColor"/></svg><span>${t('noLogo')}</span>`, t('noLogo'))
+  );
+  for (const l of listLogos()) {
+    const b = opt(l.id, '', l.name);
+    const img = document.createElement('img');
+    img.src = l.data;
+    img.alt = l.name;
+    b.appendChild(img);
+    if (!l.builtin) {
+      const del = document.createElement('span');
+      del.className = 'logo-del';
+      del.textContent = '×';
+      del.title = t('deleteLogo');
+      del.setAttribute('role', 'button');
+      del.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (!confirm(t('confirmDeleteLogo', { name: l.name }))) return;
+        deleteLogo(l.id);
+        if (settings.logo === l.id) settings.logo = 'builtin';
+        saveSettings(settings);
+        renderLogos();
+        schedulePreview();
+        toast(t('logoDeleted'));
+      });
+      b.appendChild(del);
+    }
+    box.appendChild(b);
+  }
+  const add = document.createElement('button');
+  add.type = 'button';
+  add.className = 'logo-opt add';
+  add.innerHTML = `<span class="plus">+</span><span>${t('uploadLogo')}</span>`;
+  add.addEventListener('click', () => $('#logo-file').click());
+  box.appendChild(add);
+}
+
+// ---------- languages ----------
+
+function renderLangs() {
+  const box = $('#ui-lang');
+  box.textContent = '';
+  for (const l of LANGS) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = l.label;
+    b.title = l.name;
+    b.setAttribute('aria-pressed', String(settings.uiLang === l.code));
+    b.addEventListener('click', () => setUiLang(l.code));
+    box.appendChild(b);
+  }
+  const sel = $('#card-lang');
+  sel.textContent = '';
+  for (const l of LANGS) sel.add(new Option(l.name, l.code));
+  sel.value = settings.lang;
+}
+
+function setUiLang(code) {
+  settings.uiLang = code;
+  saveSettings(settings);
+  translatePage();
+  renderList();
+  fillForm();
+  schedulePreview();
+}
+
+function translatePage() {
+  applyI18n(settings.uiLang);
+  renderLangs();
+  $('#made-by').textContent = t('madeBy', { name: 'Leonidas' });
 }
 
 function setOutput(out, save = true) {
@@ -342,13 +443,14 @@ async function renderPreview() {
       qr,
       width: '100%',
       height: '100%',
-      pageLabel: pages > 1 ? `Page 1 of ${pages}` : '',
+      pageLabel: pages > 1 ? t('pageOf', { p: 1, n: pages }) : '',
+      cutNote: t('cutNote'),
     });
     box.appendChild(div);
     note.innerHTML = sample
-      ? '<span class="sample-badge">Sample</span> Add vouchers to see your cards'
+      ? `<span class="sample-badge">${t('sample')}</span> ${t('sampleA4')}`
       : pages > 1
-        ? `Page 1 of ${pages}`
+        ? t('pageOf', { p: 1, n: pages })
         : '';
     return;
   }
@@ -357,8 +459,8 @@ async function renderPreview() {
   const dpmm = dotsPerMm(settings.dpi);
   const shown = cards.slice(0, PREVIEW_MAX);
   note.innerHTML = sample
-    ? '<span class="sample-badge">Sample</span> Exactly what the Zebra prints, dot for dot'
-    : `Exactly what the Zebra prints, dot for dot${cards.length > shown.length ? ` · first ${shown.length} of ${cards.length}` : ''}`;
+    ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}`
+    : t('zebraNote') + (cards.length > shown.length ? ' · ' + t('firstOf', { n: shown.length, total: cards.length }) : '');
   for (const v of shown) {
     const bmp = rasterCard(v, settings, { dpmm, logo: logo?.img || null, logoStyle: settings.logoStyle, qr, logoCache: logoBitsCache });
     if (token !== previewToken) return;
@@ -421,7 +523,7 @@ async function withBusy(btn, label, fn) {
 
 async function downloadZpl() {
   const btn = $('#dl-zpl');
-  const zpl = await withBusy(btn, 'Preparing', buildZpl);
+  const zpl = await withBusy(btn, t('preparing'), buildZpl);
   const blob = new Blob([zpl], { type: 'application/octet-stream' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -430,17 +532,17 @@ async function downloadZpl() {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  toast(`ZPL file ready: ${plural(selected().length * (settings.copies || 1), 'label')}`);
+  toast(t('zplReady', { n: plural(selected().length * (settings.copies || 1), 'label') }));
 }
 
 async function copyZpl() {
   const btn = $('#copy-zpl');
-  const zpl = await withBusy(btn, 'Preparing', buildZpl);
+  const zpl = await withBusy(btn, t('preparing'), buildZpl);
   try {
     await navigator.clipboard.writeText(zpl);
-    toast('ZPL copied to the clipboard');
+    toast(t('copied'));
   } catch {
-    toast('The browser blocked the clipboard. Use Download instead.', true);
+    toast(t('clipBlocked'), true);
   }
 }
 
@@ -463,7 +565,7 @@ async function printCards(kind) {
     for (let p = 0; p < pages; p++) {
       const chunk = list.slice(p * A4.perPage, (p + 1) * A4.perPage);
       html.push(
-        `<div class="a4-page">${sheetSvg(chunk, settings, { measure, logo, qr, pageLabel: pages > 1 ? `Page ${p + 1} of ${pages}` : '' })}</div>`
+        `<div class="a4-page">${sheetSvg(chunk, settings, { measure, logo, qr, cutNote: t('cutNote'), pageLabel: pages > 1 ? t('pageOf', { p: p + 1, n: pages }) : '' })}</div>`
       );
     }
   }
@@ -480,6 +582,7 @@ window.addEventListener('afterprint', () => {
 // ---------- wiring ----------
 
 function init() {
+  translatePage();
   fillForm();
   bindForm();
   renderList();
@@ -523,7 +626,7 @@ function init() {
       return;
     }
     const r = addVouchers([{ user: u.value.trim(), pass: p.value.trim() }]);
-    if (!r.added) toast('That voucher is already in the list', true);
+    if (!r.added) toast(t('dup'), true);
     u.value = '';
     p.value = '';
     u.focus();
@@ -537,11 +640,11 @@ function init() {
     let found = parseVouchers(text).vouchers;
     if (!found.length) found = parseLines(text);
     if (!found.length) {
-      toast('Nothing to add. Put one voucher per line.', true);
+      toast(t('nothingToAdd'), true);
       return;
     }
     const r = addVouchers(found);
-    toast(`Added ${plural(r.added, 'voucher')}${r.skipped ? ` (${r.skipped} already in the list)` : ''}`);
+    toast(t('added', { n: plural(r.added, 'voucher') }) + (r.skipped ? ' ' + t('alreadyIn', { n: r.skipped }) : ''));
     ta.value = '';
   });
 
@@ -553,7 +656,7 @@ function init() {
     schedulePreview();
   });
   $('#clear-all').addEventListener('click', () => {
-    if (!confirm(`Remove all ${vouchers.length} vouchers from the list?`)) return;
+    if (!confirm(t('confirmClear', { n: plural(vouchers.length, 'voucher') }))) return;
     vouchers = [];
     persist();
     renderList();

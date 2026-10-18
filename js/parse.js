@@ -1,9 +1,9 @@
 // Turns text (from a PDF, CSV or a paste) into a list of vouchers.
 // Pure functions only, so they can be tested in Node.
 
-const USER_LABEL = String.raw`(?:user\s*-?\s*id|user\s*name|username|user|login|όνομα\s+χρήστη|χρήστης)`;
-const PASS_LABEL = String.raw`(?:pass\s*word|password|passcode|pass|pwd|pin|κωδικός(?:\s+πρόσβασης)?)`;
-const EXPIRY_LABEL = String.raw`(?:expiration|expires|expiry|validity|valid\s+for|duration|λήξη|διάρκεια)`;
+const USER_LABEL = String.raw`(?:user\s*-?\s*id|user\s*name|username|user|login|όνομα\s+χρήστη|αναγνωριστικό\s+χρήστη|χρήστης|id\s+utilizator|nume\s+(?:de\s+)?utilizator|utilizator)`;
+const PASS_LABEL = String.raw`(?:pass\s*word|password|passcode|pass|pwd|pin|κωδικός(?:\s+πρόσβασης)?|parol[aă])`;
+const EXPIRY_LABEL = String.raw`(?:expiration|expires|expiry|validity|valid\s+for|duration|λήξη|διάρκεια|ισχύς|expirare|valabilitate|durat[aă])`;
 const SEP = String.raw`(?![\p{L}\p{N}])\s*[:=]?\s*`;
 const B = String.raw`(?<![\p{L}\p{N}])`; // start of a word
 const TOKEN = String.raw`([^\s,;]+)`;
@@ -89,21 +89,21 @@ export function parseVouchers(text) {
   return { vouchers, format, validity: commonValidity(vouchers) };
 }
 
-/** "12 hour(s) and 0 minute(s)" -> "12 hours". Returns '' when unknown. */
-export function humanizeExpiry(s) {
-  if (!s) return '';
+/**
+ * "12 hour(s) and 0 minute(s)" -> {d: 0, h: 12, m: 0}. Returns null when unknown.
+ * Understands English, Greek and Romanian unit names.
+ */
+export function parseDuration(s) {
+  if (!s) return null;
   const num = (re) => {
     const m = s.match(re);
     return m ? parseInt(m[1], 10) : 0;
   };
-  const d = num(/(\d+)\s*day/i);
-  const h = num(/(\d+)\s*hour/i);
-  const min = num(/(\d+)\s*min/i);
-  if (!d && !h && !min) return '';
-  const part = (n, one, many) => (n ? `${n} ${n === 1 ? one : many}` : '');
-  return [part(d, 'day', 'days'), part(h, 'hour', 'hours'), part(min, 'minute', 'minutes')]
-    .filter(Boolean)
-    .join(' ');
+  const d = num(/(\d+)\s*(?:de\s+)?(?:day|ημέρ|ημερ|μέρ|zi(?!\p{L})|zile)/iu);
+  const h = num(/(\d+)\s*(?:de\s+)?(?:hour|hr|ώρ|ωρ|or[ăae](?!\p{L}))/iu);
+  const m = num(/(\d+)\s*(?:de\s+)?(?:min|λεπ)/iu);
+  if (!d && !h && !m) return null;
+  return { d, h, m };
 }
 
 /** Parses several versions of the same document's text and keeps the best. */
@@ -117,11 +117,15 @@ export function parseBest(texts) {
     const res = parseVouchers(t);
     if (!best || score(res) > score(best)) best = res;
   }
-  return best || { vouchers: [], format: 'none', validity: '' };
+  return best || { vouchers: [], format: 'none', validity: null };
 }
 
-/** If every voucher has the same expiry, returns it in plain words. */
+/** If every voucher has the same expiry, returns it as {d, h, m}; otherwise null. */
 export function commonValidity(vouchers) {
-  const set = new Set(vouchers.map((v) => humanizeExpiry(v.expiry)).filter(Boolean));
-  return set.size === 1 ? [...set][0] : '';
+  const map = new Map();
+  for (const v of vouchers) {
+    const dur = parseDuration(v.expiry);
+    if (dur) map.set(JSON.stringify(dur), dur);
+  }
+  return map.size === 1 ? [...map.values()][0] : null;
 }

@@ -10,6 +10,9 @@ export const FONT_SANS = "Inter, 'Segoe UI', Arial, sans-serif";
 export const FONT_MONO = "'JetBrains Mono', Consolas, 'Courier New', monospace";
 
 const MUTED = '#5f6b7a';
+
+/** Wi-Fi arcs drawn in a 32 x 32 box (dot at 16,24). Used when a card has no logo. */
+export const WIFI_PATH = 'M6 13.5a14 14 0 0 1 20 0M9.8 17.3a8.6 8.6 0 0 1 12.4 0M13.5 21a3.4 3.4 0 0 1 5 0';
 const BOX_FILL = '#eef3f8';
 
 /**
@@ -58,16 +61,28 @@ export function layoutCard(v, s, o = {}) {
     const k = Math.min(maxW / o.logo.w, maxH / o.logo.h);
     L.logo = { x: PAD, y: 3.9, w: o.logo.w * k, h: o.logo.h * k };
   }
-  const headLeft = L.logo ? L.logo.x + L.logo.w + 3 : PAD;
-  const headW = CARD_W - PAD - headLeft;
-
-  const titleFont = { weight: 800, size: 4.6 };
-  titleFont.size = fitSize(measure, s.title, titleFont, headW, 2.4);
-  const subFont = { weight: 500, size: 2.5 };
-  subFont.size = fitSize(measure, s.subtitle, subFont, headW, 1.6);
   const hasSub = !!(s.subtitle || '').trim();
-  L.title = { x: CARD_W - PAD, y: hasSub ? 9.4 : 11, font: titleFont, text: s.title || '' };
-  L.subtitle = { x: CARD_W - PAD, y: 13.4, font: subFont, text: s.subtitle || '' };
+  if (L.logo) {
+    // Logo on the left, title and validity right-aligned.
+    const headW = CARD_W - PAD - (L.logo.x + L.logo.w + 3);
+    const titleFont = { weight: 800, size: 4.6 };
+    titleFont.size = fitSize(measure, s.title, titleFont, headW, 2.4);
+    const subFont = { weight: 500, size: 2.5 };
+    subFont.size = fitSize(measure, s.subtitle, subFont, headW, 1.6);
+    L.title = { x: CARD_W - PAD, y: hasSub ? 9.4 : 11, font: titleFont, text: s.title || '', anchor: 'end' };
+    L.subtitle = { x: CARD_W - PAD, y: 13.4, font: subFont, text: s.subtitle || '', anchor: 'end' };
+  } else {
+    // No logo: a Wi-Fi sign, with the title and validity next to it on the left.
+    L.icon = { x: PAD, y: 4.1, size: 10 };
+    const x = PAD + L.icon.size + 3;
+    const headW = CARD_W - PAD - x;
+    const titleFont = { weight: 800, size: 5.2 };
+    titleFont.size = fitSize(measure, s.title, titleFont, headW, 2.4);
+    const subFont = { weight: 500, size: 2.6 };
+    subFont.size = fitSize(measure, s.subtitle, subFont, headW, 1.6);
+    L.title = { x, y: hasSub ? 9.3 : 10.9, font: titleFont, text: s.title || '', anchor: 'start' };
+    L.subtitle = { x, y: 13.3, font: subFont, text: s.subtitle || '', anchor: 'start' };
+  }
 
   // Credentials box.
   const qrSize = o.qr ? 21 : 0;
@@ -158,8 +173,18 @@ export function cardSvg(v, s, o = {}) {
         `${extra}>${esc(t)}</text>`
       : '';
 
-  parts.push(text(L.title.text, L.title.x, L.title.y, L.title.font, ink, 'end'));
-  parts.push(text(L.subtitle.text, L.subtitle.x, L.subtitle.y, L.subtitle.font, muted, 'end'));
+  if (L.icon) {
+    const ic = L.icon;
+    const k = ic.size / 32;
+    parts.push(
+      `<g transform="translate(${r(ic.x)} ${r(ic.y)}) scale(${r(k)})">` +
+        (mono ? '' : `<rect width="32" height="32" rx="8" fill="${ink}"/>`) +
+        `<path d="${WIFI_PATH}" stroke="${mono ? '#000' : accent}" stroke-width="${mono ? 3.2 : 2.6}" fill="none" stroke-linecap="round"/>` +
+        `<circle cx="16" cy="24" r="${mono ? 2.4 : 2}" fill="${mono ? '#000' : accent}"/></g>`
+    );
+  }
+  parts.push(text(L.title.text, L.title.x, L.title.y, L.title.font, ink, L.title.anchor));
+  parts.push(text(L.subtitle.text, L.subtitle.x, L.subtitle.y, L.subtitle.font, muted, L.subtitle.anchor));
 
   const b = L.box;
   parts.push(
@@ -229,7 +254,7 @@ export function sheetSvg(cards, s, o = {}) {
     parts.push(`<line x1="0" x2="${A4.w}" y1="${y}" y2="${y}" ${dash}/>`);
   }
   parts.push(
-    `<text x="${A4.x0 + 3}" y="${A4.h - 8}" font-size="2.4" fill="#8d98a6">✂  Cut along the dashed lines  •  Print at 100% / Actual size</text>`
+    `<text x="${A4.x0 + 3}" y="${A4.h - 8}" font-size="2.4" fill="#8d98a6">${esc(o.cutNote ?? '✂  Cut along the dashed lines  •  Print at 100% / Actual size')}</text>`
   );
   if (o.pageLabel) parts.push(`<text x="${A4.w - A4.x0 - 3}" y="${A4.h - 8}" font-size="2.4" fill="#8d98a6" text-anchor="end">${esc(o.pageLabel)}</text>`);
   parts.push('</svg>');

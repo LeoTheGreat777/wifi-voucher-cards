@@ -17,8 +17,9 @@
         <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--navy)"/><path d="M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0" stroke="var(--green)" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="16" cy="24" r="1.8" fill="var(--green)"/></svg>
         <div>
           <h1>WiFi Voucher Cards</h1>
-          <p>Vouchers in, beautiful cards out. Everything stays in your browser.</p>
+          <p data-i18n="tagline">Vouchers in, beautiful cards out. Everything stays in your browser.</p>
         </div>
+        <div class="langs" id="ui-lang" role="group" aria-label="Language"></div>
       </div>
     </header>
 
@@ -26,74 +27,75 @@
       <section class="col col-left">
         <!-- 1. Vouchers -->
         <div class="panel">
-          <h2><span class="step">1</span>Add vouchers</h2>
+          <h2><span class="step">1</span><span data-i18n="step1">Add vouchers</span></h2>
           <label class="drop" id="drop" tabindex="0">
             <input type="file" id="file" accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain" multiple hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <strong>Drop a voucher PDF here</strong>
-            <span>FortiGate PDF, CSV or text file, or click to choose</span>
+            <strong data-i18n="dropTitle">Drop a voucher PDF here</strong>
+            <span data-i18n="dropSub">FortiGate PDF, CSV or text file, or click to choose</span>
           </label>
 
-          <div class="or"><span>or type them in</span></div>
+          <div class="or"><span data-i18n="orType">or type them in</span></div>
 
           <form id="add-one" class="add-one" autocomplete="off">
-            <input id="one-user" placeholder="Username" aria-label="Username" spellcheck="false">
-            <input id="one-pass" placeholder="Password" aria-label="Password" spellcheck="false">
-            <button class="btn" type="submit">Add</button>
+            <input id="one-user" data-i18n-ph="phUser" placeholder="Username" spellcheck="false">
+            <input id="one-pass" data-i18n-ph="phPass" placeholder="Password" spellcheck="false">
+            <button class="btn" type="submit" data-i18n="add">Add</button>
           </form>
           <details class="paste">
-            <summary>Paste many at once</summary>
+            <summary data-i18n="pasteMany">Paste many at once</summary>
             <textarea id="paste" rows="5" spellcheck="false" placeholder="user0161  bexchzgf&#10;user0162  3bvxeqx7&#10;user0163, 7493eqa4"></textarea>
             <div class="row">
-              <span class="hint">One voucher per line. Separate username and password with a space, comma or tab.</span>
-              <button class="btn" id="add-paste" type="button">Add all</button>
+              <span class="hint" data-i18n="pasteHint">One voucher per line. Separate username and password with a space, comma or tab.</span>
+              <button class="btn" id="add-paste" type="button" data-i18n="addAll">Add all</button>
             </div>
           </details>
         </div>
 
         <div class="panel">
           <div class="panel-head">
-            <h2>Vouchers <span class="pill" id="count">0</span></h2>
+            <h2><span data-i18n="vouchers">Vouchers</span> <span class="pill" id="count">0</span></h2>
             <div class="head-actions">
               <button class="link" id="toggle-all" type="button">Select none</button>
-              <button class="link danger" id="clear-all" type="button">Clear all</button>
+              <button class="link danger" id="clear-all" type="button" data-i18n="clearAll">Clear all</button>
             </div>
           </div>
           <div id="list" class="vlist" role="list"></div>
-          <p id="empty" class="empty">No vouchers yet. Drop a PDF or type one in above.</p>
+          <p id="empty" class="empty" data-i18n="empty">No vouchers yet. Drop a PDF or type one in above.</p>
         </div>
 
         <!-- 2. Design -->
         <div class="panel">
           <div class="panel-head">
-            <h2><span class="step">2</span>Card design</h2>
-            <button class="link" id="reset-design" type="button">Reset</button>
+            <h2><span class="step">2</span><span data-i18n="step2">Card design</span></h2>
+            <button class="link" id="reset-design" type="button" data-i18n="reset">Reset</button>
           </div>
           <div class="fields">
-            <label class="field"><span>Title</span><input data-s="title"></label>
-            <label class="field"><span>Validity line</span><input data-s="subtitle" placeholder="Valid for 12 hours"></label>
-            <label class="field wide"><span>Note at the bottom</span><input data-s="footer"></label>
-            <label class="field"><span>Username label</span><input data-s="userLabel"></label>
-            <label class="field"><span>Password label</span><input data-s="passLabel"></label>
-            <label class="field"><span>Accent colour</span><span class="color"><input type="color" data-s="accent"><code data-show="accent"></code></span></label>
-            <label class="field"><span>Text colour</span><span class="color"><input type="color" data-s="ink"><code data-show="ink"></code></span></label>
-            <label class="field"><span>Logo</span>
-              <select data-s="logo">
-                <option value="builtin">Hellenic Cables</option>
-                <option value="custom">My own logo…</option>
-                <option value="none">No logo</option>
-              </select>
+            <label class="field wide"><span data-i18n="cardLang">Card language</span>
+              <select id="card-lang"></select>
+              <small class="hint" data-i18n="cardLangHint"></small>
             </label>
-            <label class="field"><span>Logo on Zebra labels</span>
+            <label class="field"><span data-i18n="fTitle">Title</span><input data-s="title"></label>
+            <label class="field"><span data-i18n="fSubtitle">Validity line</span><input data-s="subtitle" placeholder="Valid for 12 hours"></label>
+            <label class="field wide"><span data-i18n="fFooter">Note at the bottom</span><input data-s="footer"></label>
+            <label class="field"><span data-i18n="fUserLabel">Username label</span><input data-s="userLabel"></label>
+            <label class="field"><span data-i18n="fPassLabel">Password label</span><input data-s="passLabel"></label>
+            <label class="field"><span data-i18n="fAccent">Accent colour</span><span class="color"><input type="color" data-s="accent"><code data-show="accent"></code></span></label>
+            <label class="field"><span data-i18n="fInk">Text colour</span><span class="color"><input type="color" data-s="ink"><code data-show="ink"></code></span></label>
+            <div class="field wide"><span data-i18n="fLogo">Logo</span>
+              <div class="logos" id="logos" role="radiogroup"></div>
+              <small class="hint" data-i18n="logoHint"></small>
+            </div>
+            <label class="field wide"><span data-i18n="fLogoStyle">Logo on Zebra labels</span>
               <select data-s="logoStyle">
-                <option value="dither">Shaded (keeps light colours)</option>
-                <option value="threshold">Solid black and white</option>
+                <option value="dither" data-i18n="styleDither">Shaded (keeps light colours)</option>
+                <option value="threshold" data-i18n="styleThreshold">Solid black and white</option>
               </select>
             </label>
             <input type="file" id="logo-file" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden>
-            <label class="check wide"><input type="checkbox" data-s="qr"> Add a QR code that joins the Wi-Fi network</label>
-            <label class="field qr-only"><span>Network name (SSID)</span><input data-s="ssid" spellcheck="false" placeholder="HC-Guest"></label>
-            <label class="field qr-only"><span>Network password</span><input data-s="wifiKey" spellcheck="false" placeholder="Leave empty if open"></label>
+            <label class="check wide"><input type="checkbox" data-s="qr"> <span data-i18n="qrCheck">Add a QR code that joins the Wi-Fi network</span></label>
+            <label class="field qr-only"><span data-i18n="fSsid">Network name (SSID)</span><input data-s="ssid" spellcheck="false" placeholder="HC-Guest"></label>
+            <label class="field qr-only"><span data-i18n="fWifiKey">Network password</span><input data-s="wifiKey" spellcheck="false" data-i18n-ph="phWifiKey"></label>
           </div>
         </div>
       </section>
@@ -101,13 +103,13 @@
       <!-- 3. Output -->
       <section class="col col-right">
         <div class="panel output">
-          <h2><span class="step">3</span>Print</h2>
+          <h2><span class="step">3</span><span data-i18n="step3">Print</span></h2>
           <div class="tabs" role="tablist">
             <button role="tab" data-out="zebra" type="button">
-              <strong>Zebra label</strong><span>90 × 50 mm, one card per label</span>
+              <strong data-i18n="tabZebra">Zebra label</strong><span data-i18n="tabZebraSub">90 × 50 mm, one card per label</span>
             </button>
             <button role="tab" data-out="a4" type="button">
-              <strong>A4 sheet</strong><span>10 cards per page, for big batches</span>
+              <strong data-i18n="tabA4">A4 sheet</strong><span data-i18n="tabA4Sub">10 cards per page, for big batches</span>
             </button>
           </div>
 
@@ -115,31 +117,31 @@
             <div class="actions">
               <button class="btn primary" id="dl-zpl" type="button">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                Download ZPL file
+                <span id="dl-zpl-label">Download ZPL file</span>
               </button>
-              <button class="btn" id="copy-zpl" type="button">Copy ZPL</button>
-              <button class="btn" id="print-label" type="button">Print with driver</button>
+              <button class="btn" id="copy-zpl" type="button" data-i18n="copyZpl">Copy ZPL</button>
+              <button class="btn" id="print-label" type="button" data-i18n="printDriver">Print with driver</button>
             </div>
             <details class="printer">
-              <summary>Printer settings <span class="muted" id="printer-summary"></span></summary>
+              <summary><span data-i18n="printerSettings">Printer settings</span> <span class="muted" id="printer-summary"></span></summary>
               <div class="fields">
-                <label class="field"><span>Resolution</span>
+                <label class="field"><span data-i18n="resolution">Resolution</span>
                   <select data-s="dpi" data-num><option value="203">203 dpi (ZD421)</option><option value="300">300 dpi</option></select>
                 </label>
-                <label class="field"><span>Copies of each card</span><input type="number" min="1" max="20" data-s="copies" data-num></label>
-                <label class="field"><span>Darkness (0–30)</span><input type="number" min="0" max="30" data-s="darkness" placeholder="Printer default"></label>
-                <label class="field"><span>Speed (inch/s)</span><input type="number" min="2" max="6" data-s="speed" placeholder="Printer default"></label>
-                <label class="field"><span>Shift right (mm)</span><input type="number" step="0.5" data-s="offsetX" data-num></label>
-                <label class="field"><span>Shift down (mm)</span><input type="number" step="0.5" data-s="offsetY" data-num></label>
+                <label class="field"><span data-i18n="copies">Copies of each card</span><input type="number" min="1" max="20" data-s="copies" data-num></label>
+                <label class="field"><span data-i18n="darkness">Darkness (0–30)</span><input type="number" min="0" max="30" data-s="darkness" data-i18n-ph="printerDefault"></label>
+                <label class="field"><span data-i18n="speed">Speed (inch/s)</span><input type="number" min="2" max="6" data-s="speed" data-i18n-ph="printerDefault"></label>
+                <label class="field"><span data-i18n="shiftX">Shift right (mm)</span><input type="number" step="0.5" data-s="offsetX" data-num></label>
+                <label class="field"><span data-i18n="shiftY">Shift down (mm)</span><input type="number" step="0.5" data-s="offsetY" data-num></label>
               </div>
             </details>
             <details class="help">
-              <summary>How do I send a ZPL file to the printer?</summary>
+              <summary data-i18n="helpTitle">How do I send a ZPL file to the printer?</summary>
               <ul>
-                <li><b>Zebra Setup Utilities</b> (Windows): select the ZD421, click <i>Open Communication With Printer</i>, then <i>Send File</i> and pick the .zpl file.</li>
-                <li><b>Shared printer on Windows</b>: <code>copy /b vouchers.zpl \\localhost\ZD421</code> (use your printer's share name).</li>
-                <li><b>Network printer</b>: send the file to port 9100, e.g. <code>nc 192.168.1.50 9100 &lt; vouchers.zpl</code>.</li>
-                <li>No ZPL tool? Use <b>Print with driver</b>, choose the ZD421, paper size 90 × 50 mm, scale 100%, no margins.</li>
+                <li data-i18n-html="help1"></li>
+                <li data-i18n-html="help2"></li>
+                <li data-i18n-html="help3"></li>
+                <li data-i18n-html="help4"></li>
               </ul>
             </details>
           </div>
@@ -148,17 +150,17 @@
             <div class="actions">
               <button class="btn primary" id="print-a4" type="button">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2M7 14h10v6H7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-                Print A4 / save as PDF
+                <span data-i18n="printA4">Print A4 / save as PDF</span>
               </button>
               <span class="muted" id="a4-info"></span>
             </div>
-            <p class="hint">In the print window choose A4, scale 100% (Actual size) and turn on background graphics.</p>
+            <p class="hint" data-i18n="a4Hint">In the print window choose A4, scale 100% (Actual size) and turn on background graphics.</p>
           </div>
         </div>
 
         <div class="preview-wrap">
           <div class="preview-head">
-            <h3>Preview</h3>
+            <h3 data-i18n="preview">Preview</h3>
             <span class="muted" id="preview-note"></span>
           </div>
           <div id="preview" class="preview"></div>
@@ -167,7 +169,8 @@
     </main>
 
     <footer class="foot">
-      Your vouchers never leave this page: PDFs are read in the browser and nothing is uploaded.
+      <p data-i18n="footPrivacy">Your vouchers never leave this page: PDFs are read in the browser and nothing is uploaded.</p>
+      <p class="credit"><span id="made-by">Made by Leonidas</span> · <a href="https://github.com/LeoTheGreat777/wifi-voucher-cards" target="_blank" rel="noopener" data-i18n="source">Source code</a></p>
     </footer>
   </div>
 
