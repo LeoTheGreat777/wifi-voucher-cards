@@ -4,7 +4,7 @@ import { measure, loadFonts, rasterCard, bitmapToCanvas } from './raster.js';
 import { labelZpl, dotsPerMm } from './zpl.js';
 import { makeQr, wifiPayload } from './qr.js';
 import { defaults, cardTextFor, loadSettings, saveSettings, loadVouchers, saveVouchers, listLogos, findLogo, addLogo, deleteLogo } from './settings.js';
-import { LANGS, detectLang, tr, applyI18n, count, formatDuration } from './i18n.js';
+import { LANGS, detectLang, tr, applyI18n, count, formatDuration, durationParts, durationFrom } from './i18n.js';
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -250,6 +250,11 @@ function fillForm() {
   if (settings.darkness !== '') p.push(t('darknessN', { n: settings.darkness }));
   if (settings.offsetX || settings.offsetY) p.push(t('shifted'));
   $('#card-lang').value = settings.lang;
+  const vp = durationParts(settings.validity);
+  const vn = $('#valid-n');
+  if (vp.unit !== 'none' || !vn.value) vn.value = vp.n === '' ? 12 : vp.n;
+  vn.disabled = vp.unit === 'none';
+  $('#valid-unit').value = vp.unit;
   renderLogos();
   $('#printer-summary').textContent = `· ${p.join(', ')}`;
   setOutput(settings.output, false);
@@ -287,6 +292,20 @@ function bindForm() {
       toast(err.message, true);
     }
   });
+  const onValidity = () => {
+    const unit = $('#valid-unit').value;
+    const dur = durationFrom($('#valid-n').value, unit);
+    // While the number box is being edited (empty or 0), keep the last good value.
+    if (!dur && unit !== 'none') return;
+    settings.validity = dur;
+    settings.subtitle = cardTextFor(settings.lang, dur).subtitle;
+    $('#valid-n').disabled = unit === 'none';
+    saveSettings(settings);
+    schedulePreview();
+  };
+  $('#valid-n').addEventListener('input', onValidity);
+  $('#valid-unit').addEventListener('change', onValidity);
+  $('#valid-n').addEventListener('blur', () => fillForm());
   $('#card-lang').addEventListener('change', (e) => {
     settings.lang = e.target.value;
     Object.assign(settings, cardTextFor(settings.lang, settings.validity));

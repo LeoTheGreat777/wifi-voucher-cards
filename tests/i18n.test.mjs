@@ -23,3 +23,17 @@ test('every language has every card text and falls back to English', () => {
   assert.equal(tr('el', 'noSuchKey'), 'noSuchKey');
   assert.equal(tr('ro', 'added', { n: '3 vouchere' }), 'Adăugate: 3 vouchere');
 });
+
+test('validity menu round trip', async () => {
+  const { durationParts, durationFrom } = await import('../js/i18n.js');
+  assert.deepEqual(durationParts({ d: 0, h: 12, m: 0 }), { n: 12, unit: 'h' });
+  assert.deepEqual(durationParts({ d: 1, h: 12, m: 0 }), { n: 36, unit: 'h' });
+  assert.deepEqual(durationParts({ d: 2, h: 0, m: 0 }), { n: 2, unit: 'd' });
+  assert.deepEqual(durationParts({ d: 0, h: 1, m: 30 }), { n: 90, unit: 'm' });
+  assert.deepEqual(durationParts(null), { n: '', unit: 'none' });
+  assert.deepEqual(durationFrom('45', 'm'), { d: 0, h: 0, m: 45 });
+  assert.deepEqual(durationFrom(3, 'd'), { d: 3, h: 0, m: 0 });
+  assert.equal(durationFrom(12, 'none'), null);
+  assert.equal(durationFrom('', 'h'), null);
+  assert.equal(validityLine('ro', durationFrom(20, 'm')), 'Valabil timp de 20 de minute');
+});

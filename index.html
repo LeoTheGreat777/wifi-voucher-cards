@@ -86,7 +86,17 @@
               <small class="hint" data-i18n="cardLangHint"></small>
             </label>
             <label class="field"><span data-i18n="fTitle">Title</span><input data-s="title"></label>
-            <label class="field"><span data-i18n="fSubtitle">Validity line</span><input data-s="subtitle" placeholder="Valid for 12 hours"></label>
+            <div class="field"><span data-i18n="fSubtitle">Valid for</span>
+              <span class="dur">
+                <input type="number" id="valid-n" min="1" max="999" inputmode="numeric" data-i18n-aria="validNumber" aria-label="How long">
+                <select id="valid-unit" data-i18n-aria="fSubtitle" aria-label="Valid for">
+                  <option value="m" data-i18n="unitMinutes">Minutes</option>
+                  <option value="h" data-i18n="unitHours">Hours</option>
+                  <option value="d" data-i18n="unitDays">Days</option>
+                  <option value="none" data-i18n="unitNone">Hide</option>
+                </select>
+              </span>
+            </div>
             <label class="field wide"><span data-i18n="fFooter">Note at the bottom</span><input data-s="footer"></label>
             <label class="field"><span data-i18n="fUserLabel">Username label</span><input data-s="userLabel"></label>
             <label class="field"><span data-i18n="fPassLabel">Password label</span><input data-s="passLabel"></label>
@@ -104,7 +114,7 @@
             </label>
             <input type="file" id="logo-file" accept="image/png,image/jpeg,image/svg+xml,image/webp" hidden>
             <label class="check wide"><input type="checkbox" data-s="qr"> <span data-i18n="qrCheck">Add a QR code that joins the Wi-Fi network</span></label>
-            <label class="field qr-only"><span data-i18n="fSsid">Network name (SSID)</span><input data-s="ssid" spellcheck="false" placeholder="HC-Guest"></label>
+            <label class="field qr-only"><span data-i18n="fSsid">Network name (SSID)</span><input data-s="ssid" spellcheck="false" placeholder="Guest_WiFi"></label>
             <label class="field qr-only"><span data-i18n="fWifiKey">Network password</span><input data-s="wifiKey" spellcheck="false" data-i18n-ph="phWifiKey"></label>
           </div>
         </div>

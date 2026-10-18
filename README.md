@@ -15,7 +15,7 @@ Light and dark mode: pick one, or let it follow the system, with the buttons at 
 ## Using it
 
 1. Open the site.
-2. Drop the voucher PDF on the page (or type/paste the vouchers). The validity line ("Valid for 12 hours") is filled in from the PDF when it has one.
+2. Drop the voucher PDF on the page (or type/paste the vouchers). Set how long the vouchers last with the "Valid for" number and the minutes / hours / days menu (or hide the line). A FortiGate PDF fills it in for you when it says how long the vouchers last.
 3. Adjust the card if you like: card language, title, notes, colours, logo, and an optional QR code that joins the Wi-Fi network. Logos you add are saved in your browser so you can switch between them, and you can delete them. With *No logo* the card shows a Wi-Fi sign next to the title.
 4. Pick the output:
    - **Zebra label** → *Download ZPL file* and send it to the printer (see below), or *Print with driver*.

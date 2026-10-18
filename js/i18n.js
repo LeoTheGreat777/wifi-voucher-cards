@@ -67,6 +67,22 @@ export function formatDuration(lang, dur) {
     .join(and);
 }
 
+/** {d, h, m} -> one number and unit for the menu: {n: 36, unit: 'h'}. Empty -> unit 'none'. */
+export function durationParts(dur) {
+  const total = dur ? (dur.d || 0) * 1440 + (dur.h || 0) * 60 + (dur.m || 0) : 0;
+  if (!total) return { n: '', unit: 'none' };
+  if (total % 1440 === 0) return { n: total / 1440, unit: 'd' };
+  if (total % 60 === 0) return { n: total / 60, unit: 'h' };
+  return { n: total, unit: 'm' };
+}
+
+/** Number and unit from the menu -> {d, h, m}, or null when there is no validity line. */
+export function durationFrom(n, unit) {
+  n = Math.floor(Number(n));
+  if (!(n > 0) || unit === 'none') return null;
+  return { d: unit === 'd' ? n : 0, h: unit === 'h' ? n : 0, m: unit === 'm' ? n : 0 };
+}
+
 /** The card's validity line, e.g. "Valid for 12 hours". */
 export function validityLine(lang, dur) {
   const d = formatDuration(lang, dur);
@@ -103,7 +119,12 @@ const UI = {
     cardLang: 'Card language',
     cardLangHint: 'Changing it rewrites the card text below in that language.',
     fTitle: 'Title',
-    fSubtitle: 'Validity line',
+    fSubtitle: 'Valid for',
+    unitMinutes: 'Minutes',
+    unitHours: 'Hours',
+    unitDays: 'Days',
+    unitNone: 'Hide',
+    validNumber: 'How long',
     fFooter: 'Note at the bottom',
     fUserLabel: 'Username label',
     fPassLabel: 'Password label',
@@ -205,7 +226,12 @@ const UI = {
     cardLang: 'Γλώσσα κάρτας',
     cardLangHint: 'Αν την αλλάξετε, τα κείμενα της κάρτας παρακάτω γράφονται σε αυτή τη γλώσσα.',
     fTitle: 'Τίτλος',
-    fSubtitle: 'Γραμμή ισχύος',
+    fSubtitle: 'Ισχύει για',
+    unitMinutes: 'Λεπτά',
+    unitHours: 'Ώρες',
+    unitDays: 'Ημέρες',
+    unitNone: 'Απόκρυψη',
+    validNumber: 'Διάρκεια',
     fFooter: 'Σημείωση στο κάτω μέρος',
     fUserLabel: 'Ετικέτα ονόματος χρήστη',
     fPassLabel: 'Ετικέτα κωδικού',
@@ -307,7 +333,12 @@ const UI = {
     cardLang: 'Limba cardului',
     cardLangHint: 'Dacă o schimbați, textele cardului de mai jos se rescriu în acea limbă.',
     fTitle: 'Titlu',
-    fSubtitle: 'Rândul de valabilitate',
+    fSubtitle: 'Valabil timp de',
+    unitMinutes: 'Minute',
+    unitHours: 'Ore',
+    unitDays: 'Zile',
+    unitNone: 'Ascuns',
+    validNumber: 'Durată',
     fFooter: 'Nota de jos',
     fUserLabel: 'Eticheta utilizator',
     fPassLabel: 'Eticheta parolă',
@@ -403,5 +434,6 @@ export function applyI18n(lang, root = document) {
   for (const el of root.querySelectorAll('[data-i18n]')) el.textContent = tr(lang, el.dataset.i18n);
   for (const el of root.querySelectorAll('[data-i18n-html]')) el.innerHTML = tr(lang, el.dataset.i18nHtml);
   for (const el of root.querySelectorAll('[data-i18n-ph]')) el.placeholder = tr(lang, el.dataset.i18nPh);
+  for (const el of root.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', tr(lang, el.dataset.i18nAria));
   for (const el of root.querySelectorAll('[data-i18n-title]')) el.title = el.ariaLabel = tr(lang, el.dataset.i18nTitle);
 }

@@ -13,7 +13,7 @@ const BASE = Object.freeze({
   logo: 'builtin', // 'none', 'builtin' or the id of a saved logo
   logoStyle: 'dither', // 'dither' | 'threshold'
   qr: false,
-  ssid: '',
+  ssid: 'Guest_WiFi',
   wifiKey: '',
   // Printer
   dpi: 203,
@@ -57,6 +57,9 @@ export function loadSettings(detectedLang) {
     delete s.customLogo;
   }
   if (s.logo === 'custom') s.logo = 'builtin';
+  if (!String(s.ssid || '').trim()) s.ssid = BASE.ssid;
+  // The validity line always follows the menu.
+  s.subtitle = validityLine(s.lang, s.validity);
   return s;
 }
 
