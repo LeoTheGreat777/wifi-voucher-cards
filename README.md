@@ -10,6 +10,8 @@ Everything runs in the browser. PDFs are read on your computer and nothing is up
 
 The app and the cards are available in **English, Greek and Romanian**. The app picks the browser's language, and you can switch with EN / ΕΛ / RO at the top. The card language is set separately under *Card design*.
 
+Light and dark mode: pick one, or let it follow the system, with the buttons at the top. Theme and language are remembered in the browser.
+
 ## Using it
 
 1. Open the site.

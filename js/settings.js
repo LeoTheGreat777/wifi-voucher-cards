@@ -5,6 +5,7 @@ export const BUILTIN_LOGOS = [{ id: 'builtin', name: 'Hellenic Cables', data: 'a
 
 const BASE = Object.freeze({
   uiLang: 'en',
+  theme: 'auto', // 'auto' (follow the system) | 'light' | 'dark'
   lang: 'en', // card language
   validity: { d: 0, h: 12, m: 0 },
   accent: '#7dba00',

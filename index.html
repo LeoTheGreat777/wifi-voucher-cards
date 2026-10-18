@@ -6,6 +6,13 @@
   <title>WiFi Voucher Cards</title>
   <meta name="description" content="Turn Wi-Fi vouchers (typed in or from a FortiGate PDF) into printable cards for Zebra label printers or A4 sheets. Runs entirely in your browser.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23002e63'/%3E%3Cpath d='M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0' stroke='%237dba00' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='1.8' fill='%237dba00'/%3E%3C/svg%3E">
+  <script>
+    // Apply the saved theme before the page draws, so it never flashes.
+    try {
+      var t = (JSON.parse(localStorage.getItem('wifi-voucher-cards.settings.v1') || '{}') || {}).theme;
+      if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+    } catch (e) {}
+  </script>
   <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -19,7 +26,10 @@
           <h1>WiFi Voucher Cards</h1>
           <p data-i18n="tagline">Vouchers in, beautiful cards out. Everything stays in your browser.</p>
         </div>
-        <div class="langs" id="ui-lang" role="group" aria-label="Language"></div>
+        <div class="top-tools">
+          <div class="seg" id="theme" role="group" aria-label="Theme"></div>
+          <div class="seg" id="ui-lang" role="group" aria-label="Language"></div>
+        </div>
       </div>
     </header>
 

@@ -296,7 +296,7 @@ function bindForm() {
   });
   $('#reset-design').addEventListener('click', () => {
     const keep = Object.fromEntries(
-      ['uiLang', 'lang', 'validity', 'dpi', 'darkness', 'speed', 'offsetX', 'offsetY', 'copies', 'output'].map((k) => [k, settings[k]])
+      ['uiLang', 'theme', 'lang', 'validity', 'dpi', 'darkness', 'speed', 'offsetX', 'offsetY', 'copies', 'output'].map((k) => [k, settings[k]])
     );
     settings = { ...defaults(settings.lang), ...keep, ...cardTextFor(settings.lang, settings.validity) };
     saveSettings(settings);
@@ -386,6 +386,38 @@ function renderLangs() {
   sel.value = settings.lang;
 }
 
+const THEME_ICONS = {
+  auto: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 20h8M12 16v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  light: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4 6 18M18 6l1.4-1.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  dark: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+};
+
+function applyTheme() {
+  const root = document.documentElement;
+  if (settings.theme === 'light' || settings.theme === 'dark') root.dataset.theme = settings.theme;
+  else delete root.dataset.theme;
+}
+
+function renderThemes() {
+  const box = $('#theme');
+  box.textContent = '';
+  for (const [id, key] of [['auto', 'themeAuto'], ['light', 'themeLight'], ['dark', 'themeDark']]) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.innerHTML = THEME_ICONS[id];
+    b.title = t(key);
+    b.setAttribute('aria-label', t(key));
+    b.setAttribute('aria-pressed', String((settings.theme || 'auto') === id));
+    b.addEventListener('click', () => {
+      settings.theme = id;
+      saveSettings(settings);
+      applyTheme();
+      renderThemes();
+    });
+    box.appendChild(b);
+  }
+}
+
 function setUiLang(code) {
   settings.uiLang = code;
   saveSettings(settings);
@@ -398,6 +430,7 @@ function setUiLang(code) {
 function translatePage() {
   applyI18n(settings.uiLang);
   renderLangs();
+  renderThemes();
   $('#made-by').textContent = t('madeBy', { name: 'Leonidas' });
 }
 
@@ -582,6 +615,7 @@ window.addEventListener('afterprint', () => {
 // ---------- wiring ----------
 
 function init() {
+  applyTheme();
   translatePage();
   fillForm();
   bindForm();

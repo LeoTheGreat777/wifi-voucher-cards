@@ -76,6 +76,9 @@ export function validityLine(lang, dur) {
 
 const UI = {
   en: {
+    themeAuto: 'Theme: follow system',
+    themeLight: 'Light',
+    themeDark: 'Dark',
     tagline: 'Vouchers in, beautiful cards out. Everything stays in your browser.',
     step1: 'Add vouchers',
     dropTitle: 'Drop a voucher PDF here',
@@ -175,6 +178,9 @@ const UI = {
     clipBlocked: 'The browser blocked the clipboard. Use Download instead.',
   },
   el: {
+    themeAuto: 'Θέμα: όπως το σύστημα',
+    themeLight: 'Φωτεινό',
+    themeDark: 'Σκούρο',
     tagline: 'Βάλτε τα κουπόνια, πάρτε έτοιμες κάρτες. Τίποτα δεν φεύγει από τον browser σας.',
     step1: 'Προσθήκη κουπονιών',
     dropTitle: 'Σύρετε εδώ το PDF με τα κουπόνια',
@@ -274,6 +280,9 @@ const UI = {
     clipBlocked: 'Ο browser μπλόκαρε την αντιγραφή. Χρησιμοποιήστε τη λήψη.',
   },
   ro: {
+    themeAuto: 'Temă: ca sistemul',
+    themeLight: 'Luminoasă',
+    themeDark: 'Întunecată',
     tagline: 'Introduceți voucherele, obțineți carduri gata de tipărit. Totul rămâne în browserul dvs.',
     step1: 'Adăugați vouchere',
     dropTitle: 'Trageți aici PDF-ul cu vouchere',
