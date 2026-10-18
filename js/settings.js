@@ -27,6 +27,7 @@ const BASE = Object.freeze({
   offsetY: 0, // mm
   copies: 1,
   output: 'zebra', // 'zebra' | 'a4'
+  addTab: 'file', // how vouchers are added: 'file' | 'type' | 'gen'
   gen: GEN_DEFAULTS, // random code generator options
 });
 
@@ -68,6 +69,7 @@ export function loadSettings(detectedLang) {
   const OLD_LABELS = { USERNAME: 1, PASSWORD: 1, 'ΟΝΟΜΑ ΧΡΗΣΤΗ': 1, ΚΩΔΙΚΟΣ: 1, UTILIZATOR: 1, PAROLĂ: 1, 'ID χρήστη': 1, Κωδικός: 1, 'ID utilizator': 1, Parolă: 1 };
   const OLD_TITLES = { 'Guest Wi-Fi': 1, 'Wi-Fi Επισκεπτών': 1, 'Wi-Fi Vizitatori': 1 };
   if (OLD_TITLES[s.title]) s.title = CARD_TEXT.en.title;
+  if (s.footer === 'Συνδεθείτε στο δίκτυο επισκεπτών και εισέλθετε με τα παραπάνω στοιχεία.') s.footer = CARD_TEXT.el.footer;
   if (OLD_LABELS[s.userLabel]) s.userLabel = CARD_TEXT[s.lang]?.userLabel || CARD_TEXT.en.userLabel;
   if (OLD_LABELS[s.passLabel]) s.passLabel = CARD_TEXT[s.lang]?.passLabel || CARD_TEXT.en.passLabel;
   // The default validity went from 12 to 8 hours; move the old default over once.

@@ -366,6 +366,7 @@ function fillForm() {
   renderLogos();
   $('#printer-summary').textContent = `· ${p.join(', ')}`;
   setOutput(settings.output, false);
+  setAddTab(settings.addTab, false);
 }
 
 function bindForm() {
@@ -562,6 +563,15 @@ function translatePage() {
   newSample();
 }
 
+/** Shows one of the three ways to add vouchers. */
+function setAddTab(tab, save = true) {
+  if (!['file', 'type', 'gen'].includes(tab)) tab = 'file';
+  settings.addTab = tab;
+  if (save) saveSettings(settings);
+  for (const b of $$('#add-tabs [data-add]')) b.setAttribute('aria-selected', String(b.dataset.add === tab));
+  for (const p of $$('.add-pane')) p.classList.toggle('on', p.dataset.pane === tab);
+}
+
 function setOutput(out, save = true) {
   settings.output = out;
   previewView = 0;
@@ -629,13 +639,13 @@ async function renderPreview() {
     note.innerHTML = sample
       ? `<span class="sample-badge">${t('sample')}</span> ${t('sampleA4')}`
       : previewViews > 1
-        ? t('scrollAll', { n: plural(previewViews, 'page') })
+        ? plural(previewViews, 'page')
         : '';
   } else {
     const dpmm = dotsPerMm(settings.dpi);
     note.innerHTML = sample
       ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}`
-      : t('zebraNote') + (previewViews > 1 ? ' · ' + t('scrollAll', { n: plural(cards.length, 'label') }) : '');
+      : t('zebraNote') + ' · ' + plural(cards.length, 'label');
     for (const v of shown) {
       const shot = document.createElement('div');
       shot.className = 'card-shot thermal';
@@ -933,6 +943,7 @@ function init() {
   });
 
   for (const b of $$('.tabs [data-out]')) b.addEventListener('click', () => setOutput(b.dataset.out));
+  for (const b of $$('#add-tabs [data-add]')) b.addEventListener('click', () => setAddTab(b.dataset.add));
   $('#dl-zpl').addEventListener('click', downloadZpl);
   $('#copy-zpl').addEventListener('click', copyZpl);
   $('#print-label').addEventListener('click', () => printCards('label'));

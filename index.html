@@ -28,7 +28,7 @@
         if (w > 980) {
           // Grows with the screen so it fills about the same share of it, up to 2x on 4K.
           var grow = Math.min(2, Math.max(1, uw / 1700));
-          z = Math.max(0.7, Math.floor(Math.min(grow, uh / need, uw / 1240) * 100 + 1e-6) / 100);
+          z = Math.max(0.66, Math.floor(Math.min(grow, uh / need, uw / 1240) * 100 + 1e-6) / 100);
         }
         root.style.zoom = z === 1 ? '' : String(z);
         root.dataset.cols = w <= 980 ? '1' : w / z >= 1200 ? '3' : '2';
@@ -63,74 +63,82 @@
         <!-- 1. Vouchers -->
         <div class="panel">
           <h2><span class="step">1</span><span data-i18n="step1">Add vouchers</span></h2>
-          <label class="drop" id="drop" tabindex="0">
-            <input type="file" id="file" accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain" multiple hidden>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <strong data-i18n="dropTitle">Drop a voucher PDF here</strong>
-            <span data-i18n="dropSub">FortiGate PDF, CSV or text file, or click to choose</span>
-          </label>
+          <div class="add-tabs" role="tablist" id="add-tabs">
+            <button type="button" role="tab" data-add="file"><span data-i18n="addTabFile">From a file</span></button>
+            <button type="button" role="tab" data-add="type"><span data-i18n="addTabType">Type or paste</span></button>
+            <button type="button" role="tab" data-add="gen"><span data-i18n="addTabGen">Generate</span></button>
+          </div>
 
-          <div class="or"><span data-i18n="orType">or type them in</span></div>
+          <div class="add-panes">
+          <div class="add-pane" data-pane="file">
+            <label class="drop" id="drop" tabindex="0">
+              <input type="file" id="file" accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain" multiple hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <strong data-i18n="dropTitle">Drop a voucher PDF here</strong>
+              <span data-i18n="dropSub">FortiGate PDF, CSV or text file, or click to choose</span>
+            </label>
+          </div>
 
-          <form id="add-one" class="add-one" autocomplete="off">
-            <input id="one-user" data-i18n-ph="phUser" placeholder="User ID" spellcheck="false">
-            <input id="one-pass" data-i18n-ph="phPass" placeholder="Password" spellcheck="false">
-            <button class="btn" type="submit" data-i18n="add">Add</button>
-          </form>
-          <details class="paste">
-            <summary data-i18n="pasteMany">Paste many at once</summary>
-            <textarea id="paste" rows="5" spellcheck="false" placeholder="user0161  bexchzgf&#10;user0162  3bvxeqx7&#10;user0163, 7493eqa4"></textarea>
+          <div class="add-pane" data-pane="type">
+            <form id="add-one" class="add-one" autocomplete="off">
+              <input id="one-user" data-i18n-ph="phUser" placeholder="User ID" spellcheck="false">
+              <input id="one-pass" data-i18n-ph="phPass" placeholder="Password" spellcheck="false">
+              <button class="btn" type="submit" data-i18n="add">Add</button>
+            </form>
+            <div class="or"><span data-i18n="orPaste">or paste many at once</span></div>
+            <textarea id="paste" rows="4" spellcheck="false" placeholder="user0161  bexchzgf&#10;user0162  3bvxeqx7&#10;user0163, 7493eqa4"></textarea>
             <div class="row">
               <span class="hint" data-i18n="pasteHint">One voucher per line. Separate username and password with a space, comma or tab.</span>
               <button class="btn" id="add-paste" type="button" data-i18n="addAll">Add all</button>
             </div>
-          </details>
-          <details class="gen" id="gen">
-            <summary data-i18n="genTitle">Generate random codes</summary>
+          </div>
+
+          <div class="add-pane gen" data-pane="gen" id="gen">
             <div class="gen-sample">
               <code id="gen-sample" aria-live="polite"></code>
               <button class="icon-btn" id="gen-refresh" type="button" data-i18n-title="genRefresh" title="New example">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4.5h-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               </button>
             </div>
-            <div class="meter" id="gen-meter"><span></span></div>
-            <p class="meter-label" id="gen-strength"></p>
+            <div class="gen-meter-row"><div class="meter" id="gen-meter"><span></span></div><span class="meter-label" id="gen-strength"></span></div>
 
-            <div class="fields">
-              <div class="field wide"><span data-i18n="genLength">Password length</span>
-                <span class="range"><input type="range" id="gen-length-r" min="4" max="32" data-g="length"><input type="number" id="gen-length" min="4" max="32" data-g="length"></span>
+            <div class="gen-line">
+              <span class="gen-label" data-i18n="genLength">Password length</span>
+              <span class="range"><input type="range" id="gen-length-r" min="4" max="32" data-g="length" data-i18n-aria="genLength" aria-label="Password length"><input type="number" id="gen-length" min="4" max="32" data-g="length" data-i18n-aria="genLength" aria-label="Password length"></span>
+            </div>
+            <div class="gen-block"><span class="gen-label" data-i18n="genMode">Make it</span>
+              <div class="modes" id="gen-mode" role="radiogroup">
+                <button type="button" role="radio" data-mode="say" data-i18n-title="modeSaySub" title="Letters only"><span data-i18n="modeSay">Easy to say</span></button>
+                <button type="button" role="radio" data-mode="read" data-i18n-title="modeReadSub" title="No 0/O, 1/l/I"><span data-i18n="modeRead">Easy to read</span></button>
+                <button type="button" role="radio" data-mode="all" data-i18n-title="modeAllSub" title="Any combination"><span data-i18n="modeAll">All characters</span></button>
               </div>
-              <div class="field wide"><span data-i18n="genMode">Make it</span>
-                <div class="modes" id="gen-mode" role="radiogroup">
-                  <button type="button" role="radio" data-mode="say"><strong data-i18n="modeSay">Easy to say</strong><small data-i18n="modeSaySub">Letters only</small></button>
-                  <button type="button" role="radio" data-mode="read"><strong data-i18n="modeRead">Easy to read</strong><small data-i18n="modeReadSub">No 0/O, 1/l/I</small></button>
-                  <button type="button" role="radio" data-mode="all"><strong data-i18n="modeAll">All characters</strong><small data-i18n="modeAllSub">Any combination</small></button>
-                </div>
+            </div>
+            <div class="gen-block"><span class="gen-label" data-i18n="genChars">Use</span>
+              <div class="chips">
+                <label class="chip" data-i18n-title="chUpper" title="Uppercase"><input type="checkbox" data-g="upper" data-i18n-aria="chUpper" aria-label="Uppercase"> <code>ABC</code></label>
+                <label class="chip" data-i18n-title="chLower" title="Lowercase"><input type="checkbox" data-g="lower" data-i18n-aria="chLower" aria-label="Lowercase"> <code>abc</code></label>
+                <label class="chip" data-i18n-title="chDigits" title="Numbers"><input type="checkbox" data-g="digits" data-i18n-aria="chDigits" aria-label="Numbers"> <code>123</code></label>
+                <label class="chip" data-i18n-title="chSymbols" title="Symbols"><input type="checkbox" data-g="symbols" data-i18n-aria="chSymbols" aria-label="Symbols"> <code>#$&amp;</code></label>
               </div>
-              <div class="field wide"><span data-i18n="genChars">Use</span>
-                <div class="chips">
-                  <label class="chip"><input type="checkbox" data-g="upper"> <span data-i18n="chUpper">Uppercase</span> <code>ABC</code></label>
-                  <label class="chip"><input type="checkbox" data-g="lower"> <span data-i18n="chLower">Lowercase</span> <code>abc</code></label>
-                  <label class="chip"><input type="checkbox" data-g="digits"> <span data-i18n="chDigits">Numbers</span> <code>123</code></label>
-                  <label class="chip"><input type="checkbox" data-g="symbols"> <span data-i18n="chSymbols">Symbols</span> <code>#$&amp;</code></label>
-                </div>
-              </div>
+            </div>
+            <div class="fields gen-users">
               <label class="field"><span data-i18n="genUsers">Usernames</span>
                 <select data-g="userMode">
                   <option value="numbered" data-i18n="usersNumbered">Numbered</option>
                   <option value="random" data-i18n="usersRandom">Random</option>
                 </select>
               </label>
-              <label class="field"><span data-i18n="genCount">How many</span><input type="number" min="1" max="1000" data-g="count"></label>
               <label class="field num-only"><span data-i18n="genPrefix">Start of username</span><input data-g="prefix" spellcheck="false" maxlength="20"></label>
               <label class="field num-only"><span data-i18n="genStart">First number</span><input type="number" min="0" data-g="start"></label>
             </div>
-            <div class="row gen-go">
-              <span class="hint" id="gen-example"></span>
+            <div class="gen-go">
+              <label class="gen-count"><span data-i18n="genCount">How many</span><input type="number" min="1" max="1000" data-g="count"></label>
               <button class="btn primary" id="gen-add" type="button" data-i18n="genAdd">Generate and add</button>
             </div>
+            <p class="hint gen-example" id="gen-example"></p>
             <p class="hint gen-note" data-i18n="genNote">These codes only let guests in after the same usernames and passwords are added to your Wi-Fi system (for example as FortiGate guest users).</p>
-          </details>
+          </div>
+          </div>
         </div>
 
         <div class="panel vouchers">

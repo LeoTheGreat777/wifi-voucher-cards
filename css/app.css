@@ -204,16 +204,14 @@ html[data-cols="3"] .layout {
   grid-template-columns: 360px 380px minmax(0, 1fr);
   align-items: stretch;
 }
-/* Opening the code generator or printer settings can make a column taller than the window;
-   then only that column scrolls. */
+/* Opening the printer settings can make a column taller than the window; then only that column scrolls. */
 html[data-cols="3"] .col { min-height: 0; overflow-y: auto; scrollbar-width: thin; margin: -6px -6px 0; padding: 6px 6px 8px; }
-/* The voucher list always stays in view: when "Paste many" or the generator is open,
-   the Add vouchers box scrolls inside itself instead of pushing the list away. */
+/* The voucher list always stays in view under the Add vouchers box and scrolls inside itself. */
 html[data-cols="3"] .col-add { overflow: visible; }
-html[data-cols="3"] .col-add > .panel:first-child { flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+html[data-cols="3"] .col-add > .panel:first-child { flex: none; }
 html[data-cols="3"] .vouchers { flex: none; }
 html[data-cols="3"] .preview-wrap { min-height: 240px; }
-html[data-cols="3"] .vouchers.has-items { flex: 1 1 0; min-height: 230px; display: flex; flex-direction: column; }
+html[data-cols="3"] .vouchers.has-items { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
 html[data-cols="3"] .vlist-wrap { flex: 1 1 0; min-height: 0; }
 html[data-cols="3"] .vlist { position: absolute; inset: 0 -6px; margin: 0; max-height: none; }
 html[data-cols="3"] .col-right > .panel { flex: none; }
@@ -235,7 +233,9 @@ html[data-measure] .qr-only { display: grid; }
 html[data-measure] .layout { flex: none; align-items: start; }
 html[data-measure] .vouchers, html[data-measure] .design, html[data-measure] .preview-wrap,
 html[data-measure] .vouchers .empty { flex: none !important; }
-html[data-measure] .vlist-wrap { flex: none !important; height: var(--list-min, 0px); }
+html[data-measure] .vlist-wrap { display: block !important; flex: none !important; height: 120px; }
+html[data-measure] .vouchers .empty { display: none; }
+html[data-measure] .vouchers { min-height: 0 !important; }
 html[data-measure] .preview-body { flex: none !important; height: 250px !important; }
 
 .panel {
@@ -259,6 +259,27 @@ html[data-measure] .preview-body { flex: none !important; height: 250px !importa
 .muted { color: var(--muted); font-weight: 400; }
 .hint { color: var(--muted); font-size: 12.5px; margin: 0; }
 
+/* ---------- Add vouchers: three ways, one shown at a time ---------- */
+.add-tabs {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 3px; margin-bottom: 14px;
+}
+.add-tabs button {
+  display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0;
+  border: 0; background: none; border-radius: 9px; padding: 7px 6px; cursor: pointer;
+  font-weight: 600; font-size: 13px; color: var(--muted); line-height: 1.2; text-align: center;
+}
+.add-tabs button:hover { color: var(--text); }
+.add-tabs button[aria-selected=true] { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(16, 32, 56, .08), 0 0 0 1px var(--line-2); }
+/* One shown at a time; the voucher list below gets whatever room is left.
+   The page is sized for the tallest one (main.js), so switching never makes it scroll. */
+.add-panes { display: grid; }
+.add-pane { grid-area: 1 / 1; min-width: 0; display: none; flex-direction: column; }
+.add-pane.on { display: flex; animation: fade .15s ease; }
+html[data-measure] .add-pane { display: flex; }
+.add-pane[data-pane=file] .drop { padding: 34px 16px; }
+.add-pane[data-pane=type] textarea { min-height: 90px; margin: 0 0 8px; }
+
 /* ---------- Drop zone ---------- */
 .drop {
   display: grid; justify-items: center; gap: 2px; text-align: center;
@@ -273,7 +294,7 @@ html[data-measure] .preview-body { flex: none !important; height: 250px !importa
 .drop span { color: var(--muted); font-size: 12.5px; }
 .drop:hover, .drop:focus-visible, .drop.over { border-color: var(--accent); background: var(--accent-soft); outline: none; }
 
-.or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin: 16px 0 12px; }
+.or { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; margin: 12px 0 10px; }
 .or::before, .or::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
 /* ---------- Form controls ---------- */
@@ -292,44 +313,51 @@ details summary { cursor: pointer; color: var(--link); font-weight: 600; font-si
 .paste textarea { margin: 10px 0 8px; }
 .row { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
 
-/* ---------- Code generator ---------- */
-.gen { margin-top: 12px; }
-.gen[open] > summary { margin-bottom: 12px; }
+/* ---------- Code generator (kept compact so it fits next to the list) ---------- */
+.gen { gap: 8px; }
 .gen-sample {
   display: flex; align-items: center; gap: 8px; border: 1px solid var(--line-2); border-radius: 12px;
-  background: var(--panel-2); padding: 8px 8px 8px 14px;
+  background: var(--panel-2); padding: 6px 6px 6px 14px;
 }
-.gen-sample code { flex: 1; min-width: 0; font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: .04em; overflow-wrap: anywhere; color: var(--text); }
+.gen-sample code { flex: 1; min-width: 0; font-family: var(--mono); font-size: 19px; font-weight: 700; letter-spacing: .04em; overflow-wrap: anywhere; color: var(--text); }
 .icon-btn { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel); color: var(--text); cursor: pointer; }
 .icon-btn:hover { border-color: var(--ring); }
 .icon-btn svg { width: 18px; height: 18px; }
 .icon-btn.spin svg { animation: spin .4s ease; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.meter { height: 6px; border-radius: 99px; background: var(--line); margin: 10px 0 4px; overflow: hidden; }
+.gen-meter-row { display: flex; align-items: center; gap: 10px; margin-top: -2px; }
+.meter { flex: none; width: 72px; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
 .meter span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--danger); transition: width .2s, background .2s; }
 .meter[data-level=fair] span { background: #e0a100; }
 .meter[data-level=strong] span { background: var(--accent); }
-.meter-label { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
-.range { display: grid; grid-template-columns: 1fr 72px; gap: 10px; align-items: center; }
+.meter-label { font-size: 12px; color: var(--muted); min-width: 0; }
+.gen-label, .gen-count > span { font-size: 12px; font-weight: 600; color: var(--muted); }
+.gen-line { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
+.gen-block { display: grid; gap: 4px; }
+.range { display: grid; grid-template-columns: minmax(0, 1fr) 62px; gap: 8px; align-items: center; }
 .range input[type=range] { padding: 0; border: 0; background: none; accent-color: var(--primary); }
-.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.range input[type=number] { padding: 6px 8px; }
+.modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .modes button {
-  display: grid; gap: 1px; text-align: left; border: 1px solid var(--line); border-radius: 10px;
-  background: var(--panel); padding: 7px 10px; cursor: pointer; color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px; background: var(--panel); padding: 7px 6px; cursor: pointer;
+  color: var(--text); font-size: 12.5px; font-weight: 600; line-height: 1.2; text-align: center;
 }
-.modes button strong { font-size: 13px; }
-.modes button small { font-size: 11.5px; color: var(--muted); }
 .modes button:hover { border-color: var(--line-2); }
 .modes button[aria-checked=true] { border-color: var(--ring); background: var(--selected); box-shadow: inset 0 0 0 1px var(--ring); }
-.chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
-.chip { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; cursor: pointer; font-size: 13px; font-weight: 500; }
-.chip code { margin-left: auto; color: var(--muted); font-size: 12px; }
+.chips { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.chip { display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 4px; cursor: pointer; }
+.chip code { font-size: 12.5px; font-weight: 700; color: var(--text); }
+.chip:has(input:checked) { border-color: var(--ring); background: var(--selected); }
 .chip.off { opacity: .45; cursor: not-allowed; }
+.fields.gen-users { grid-template-columns: 1.1fr 1fr 0.8fr; gap: 8px; }
+.gen-users .field > span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gen-users-random .fields.gen-users { grid-template-columns: 1fr; }
 .gen-users-random .num-only { display: none; }
-.gen-go { margin-top: 14px; }
-.gen-go .hint { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
-.gen-note { margin: 10px 0 0; font-size: 12px; }
-
+.gen-go { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 10px; align-items: end; margin-top: 2px; }
+.gen-count { display: grid; gap: 4px; }
+.gen-count input { width: 84px; }
+.gen-example { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; margin: -2px 0 0; }
+.gen-note { font-size: 11.5px; margin: 0; }
 
 .btn {
   display: inline-flex; align-items: center; gap: 8px; justify-content: center;
@@ -429,7 +457,8 @@ input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; 
   margin-top: 18px; background: var(--desk); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 12px 16px 12px; display: flex; flex-direction: column;
 }
-.preview-head { display: flex; align-items: baseline; gap: 10px; margin: 0 2px 10px; flex-wrap: wrap; }
+.preview-head { display: flex; align-items: baseline; gap: 10px; margin: 0 2px 10px; min-width: 0; }
+.preview-head .muted { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .preview-head h3 { margin: 0; font-size: 14px; }
 /* The pages sit side by side and scroll sideways. Each one is as tall as the box (main.js sets --ph). */
 .preview-body { position: relative; height: clamp(300px, calc(var(--vh, 100vh) - 380px), 600px); }
@@ -507,8 +536,6 @@ input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; 
   .tabs { grid-template-columns: 1fr; }
   .add-one { grid-template-columns: 1fr 1fr; }
   .add-one .btn { grid-column: 1 / -1; }
-  .modes { grid-template-columns: 1fr; }
-  .gen-go { flex-direction: column; align-items: stretch; }
   .preview-wrap { padding: 12px; }
 }
 
