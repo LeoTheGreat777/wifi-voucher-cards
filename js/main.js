@@ -171,10 +171,7 @@ function renderList() {
 
 function updateCounts() {
   const n = selected().length;
-  const c = vouchers.length === n ? String(n) : `${n} / ${vouchers.length}`;
-  $('#count').textContent = c;
-  $('#count-nav').textContent = c;
-  $('#count-nav').hidden = !vouchers.length;
+  $('#count').textContent = vouchers.length === n ? String(n) : `${n} / ${vouchers.length}`;
   const allOn = vouchers.length && vouchers.every((v) => v.on);
   $('#toggle-all').textContent = allOn ? t('selectNone') : t('selectAll');
   $('#toggle-all').hidden = !vouchers.length;
@@ -333,7 +330,6 @@ function bindGenerator() {
       saveSettings(settings);
     }
     fillGenerator();
-    $('#gen').close();
     toast(t('genAdded', { n: plural(r.added, 'voucher') }));
     const box = $('#list');
     box.scrollTop = box.scrollHeight;
@@ -559,8 +555,6 @@ function translatePage() {
 }
 
 function setOutput(out, save = true) {
-  // Keep showing the same cards when switching between labels and sheets.
-  if (out !== settings.output) previewPage = out === 'a4' ? Math.floor(previewPage / A4.perPage) : previewPage * A4.perPage;
   settings.output = out;
   if (save) saveSettings(settings);
   for (const b of $$('.tabs [data-out]')) b.setAttribute('aria-selected', String(b.dataset.out === out));
@@ -572,40 +566,17 @@ function setOutput(out, save = true) {
 
 let previewTimer;
 let previewToken = 0;
-function schedulePreview(delay = 80) {
+function schedulePreview() {
   clearTimeout(previewTimer);
-  previewTimer = setTimeout(renderPreview, delay);
+  previewTimer = setTimeout(renderPreview, 80);
 }
 
-let previewPage = 0; // 0-based page shown in the preview
+let previewObserver = null;
 
-/** How many preview pages there are: one per Zebra label, or one per A4 sheet. */
-function pageCount(cards) {
-  return settings.output === 'a4' ? Math.max(1, Math.ceil(cards.length / A4.perPage)) : Math.max(1, cards.length);
-}
-
-function goToPage(p) {
-  previewPage = p;
-  schedulePreview(0);
-}
-
-/** The pager under the preview: arrows, a slider and a page menu. */
-function renderPager(pages) {
-  const isA4 = settings.output === 'a4';
-  $('#pager').classList.toggle('single', pages < 2);
-  $('#pg-prev').disabled = previewPage <= 0;
-  $('#pg-next').disabled = previewPage >= pages - 1;
-  const range = $('#pg-range');
-  range.max = String(pages);
-  range.value = String(previewPage + 1);
-  const sel = $('#pg-select');
-  const key = isA4 ? 'pageOf' : 'labelOf';
-  if (sel.options.length !== pages || sel.dataset.key !== key + settings.uiLang) {
-    sel.textContent = '';
-    for (let i = 0; i < pages; i++) sel.add(new Option(t(key, { p: i + 1, n: pages }), String(i)));
-    sel.dataset.key = key + settings.uiLang;
-  }
-  sel.value = String(previewPage);
+/** Draws preview items only when they scroll into view, so long batches stay fast. */
+function whenVisible(el, draw) {
+  el._draw = draw;
+  previewObserver.observe(el);
 }
 
 async function renderPreview() {
@@ -617,122 +588,71 @@ async function renderPreview() {
   const list = selected();
   const sample = !list.length;
   const cards = sample ? SAMPLE : list;
-  const pages = pageCount(cards);
-  previewPage = Math.max(0, Math.min(previewPage, pages - 1));
   const box = $('#preview');
   const note = $('#preview-note');
-  let el;
-
-  if (settings.output === 'a4') {
-    el = document.createElement('div');
-    el.className = 'sheet-shot';
-    el.innerHTML = sheetSvg(cards.slice(previewPage * A4.perPage, (previewPage + 1) * A4.perPage), settings, {
-      measure,
-      logo,
-      qr,
-      width: '100%',
-      height: '100%',
-      pageLabel: pages > 1 ? t('pageOf', { p: previewPage + 1, n: pages }) : '',
-      cutNote: t('cutNote'),
-    });
-    note.innerHTML = sample ? `<span class="sample-badge">${t('sample')}</span> ${t('sampleA4')}` : t('a4Note');
-  } else {
-    const v = cards[previewPage];
-    const bmp = rasterCard(v, settings, { dpmm: dotsPerMm(settings.dpi), logo: logo?.img || null, logoStyle: settings.logoStyle, qr, logoCache: logoBitsCache });
-    el = document.createElement('div');
-    el.className = 'card-shot thermal';
-    el.title = `${v.user}${v.pass ? ' / ' + v.pass : ''}`;
-    const img = new Image();
-    img.alt = el.title;
-    img.src = bitmapToCanvas(bmp).toDataURL('image/png');
-    el.appendChild(img);
-    note.innerHTML = sample ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}` : t('zebraNote');
-  }
-  if (token !== previewToken) return;
-  box.replaceChildren(el);
-  renderPager(pages);
-}
-
-/** Arrow keys, swipes and the pager buttons move between pages. */
-function bindPager() {
-  const pages = () => pageCount(selected().length ? selected() : SAMPLE);
-  const step = (d) => {
-    const n = Math.max(0, Math.min(previewPage + d, pages() - 1));
-    if (n !== previewPage) goToPage(n);
-  };
-  $('#pg-prev').addEventListener('click', () => step(-1));
-  $('#pg-next').addEventListener('click', () => step(1));
-  $('#pg-range').addEventListener('input', (e) => goToPage(Number(e.target.value) - 1));
-  $('#pg-select').addEventListener('change', (e) => goToPage(Number(e.target.value)));
-  document.addEventListener('keydown', (e) => {
-    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
-    if (e.target.closest?.('input, textarea, select, [contenteditable], dialog')) return;
-    if (e.key === 'ArrowRight' || e.key === 'PageDown') step(1);
-    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') step(-1);
-    else return;
-    e.preventDefault();
-  });
-  let x0 = null;
-  const stage = $('#stage');
-  stage.addEventListener('pointerdown', (e) => (x0 = e.clientX));
-  stage.addEventListener('pointerup', (e) => {
-    if (x0 === null) return;
-    const dx = e.clientX - x0;
-    x0 = null;
-    if (Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
-  });
-  stage.addEventListener('pointercancel', () => (x0 = null));
-  stage.addEventListener(
-    'wheel',
-    (e) => {
-      // A sideways swipe on a touchpad turns the page too.
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 30) {
-        e.preventDefault();
-        if (!stage._wheelLock) {
-          stage._wheelLock = true;
-          setTimeout(() => (stage._wheelLock = false), 350);
-          step(e.deltaX > 0 ? 1 : -1);
-        }
+  const top = box.scrollTop;
+  box.textContent = '';
+  previewObserver?.disconnect();
+  previewObserver = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting || token !== previewToken) continue;
+        previewObserver.unobserve(e.target);
+        e.target._draw();
       }
     },
-    { passive: false }
+    // On phones the preview grows with the page, so watch the window instead of the box.
+    { root: getComputedStyle(box).overflowY === 'auto' ? box : null, rootMargin: '600px 0px' }
   );
-}
 
-// ---------- views and dialogs ----------
-
-let leftView = 'vouchers';
-
-/** Phones show one of vouchers / design / print; computers show a left tab plus the preview. */
-function setView(view) {
-  if (view !== 'print') leftView = view;
-  const app = $('#app');
-  app.dataset.view = view;
-  app.dataset.left = leftView;
-  for (const b of $$('[data-view]')) {
-    if (b === app) continue;
-    const on = b.closest('.side-tabs') ? b.dataset.view === leftView : b.dataset.view === view;
-    b.setAttribute('aria-selected', String(on));
+  if (settings.output === 'a4') {
+    box.className = 'preview sheet-mode';
+    const pages = Math.ceil(cards.length / A4.perPage);
+    for (let p = 0; p < pages; p++) {
+      const div = document.createElement('div');
+      div.className = 'sheet-shot';
+      whenVisible(div, () => {
+        div.innerHTML = sheetSvg(cards.slice(p * A4.perPage, (p + 1) * A4.perPage), settings, {
+          measure,
+          logo,
+          qr,
+          width: '100%',
+          height: '100%',
+          pageLabel: pages > 1 ? t('pageOf', { p: p + 1, n: pages }) : '',
+          cutNote: t('cutNote'),
+        });
+      });
+      box.appendChild(div);
+    }
+    note.innerHTML = sample
+      ? `<span class="sample-badge">${t('sample')}</span> ${t('sampleA4')}`
+      : pages > 1
+        ? t('scrollAll', { n: plural(pages, 'page') })
+        : '';
+    box.scrollTop = top;
+    return;
   }
-  if (view === 'print') schedulePreview(0);
-}
 
-function bindViews() {
-  for (const b of $$('button[data-view]')) b.addEventListener('click', () => setView(b.dataset.view));
-  for (const b of $$('[data-open]'))
-    b.addEventListener('click', () => {
-      const d = document.getElementById(b.dataset.open);
-      d.showModal();
-      if (d.id === 'gen') newSample();
+  box.className = 'preview';
+  const dpmm = dotsPerMm(settings.dpi);
+  note.innerHTML = sample
+    ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}`
+    : t('zebraNote') + (cards.length > 4 ? ' · ' + t('scrollAll', { n: plural(cards.length, 'label') }) : '');
+  for (const v of cards) {
+    const shot = document.createElement('div');
+    shot.className = 'card-shot thermal';
+    shot.title = `${v.user}${v.pass ? ' / ' + v.pass : ''}`;
+    whenVisible(shot, () => {
+      const bmp = rasterCard(v, settings, { dpmm, logo: logo?.img || null, logoStyle: settings.logoStyle, qr, logoCache: logoBitsCache });
+      // A small 1-bit PNG uses far less memory than keeping a canvas per label.
+      const img = new Image();
+      img.alt = '';
+      img.src = bitmapToCanvas(bmp).toDataURL('image/png');
+      shot.appendChild(img);
     });
-  for (const d of $$('dialog')) {
-    for (const c of $$('[data-close]', d)) c.addEventListener('click', () => d.close());
-    // Clicking the dimmed area outside closes it.
-    d.addEventListener('click', (e) => {
-      if (e.target === d) d.close();
-    });
+    box.appendChild(shot);
   }
-  setView('vouchers');
+  box.scrollTop = top;
 }
 
 // ---------- outputs ----------
@@ -850,8 +770,6 @@ function init() {
   bindForm();
   fillGenerator();
   bindGenerator();
-  bindPager();
-  bindViews();
   renderList();
 
   const drop = $('#drop');
@@ -913,7 +831,6 @@ function init() {
     const r = addVouchers(found);
     toast(t('added', { n: plural(r.added, 'voucher') }) + (r.skipped ? ' ' + t('alreadyIn', { n: r.skipped }) : ''));
     ta.value = '';
-    $('#paste-dlg').close();
   });
 
   $('#toggle-all').addEventListener('click', () => {

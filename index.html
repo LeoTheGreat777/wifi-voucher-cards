@@ -7,6 +7,20 @@
   <meta name="description" content="Turn Wi-Fi vouchers (typed in or from a FortiGate PDF) into printable cards for Zebra label printers or A4 sheets. Runs entirely in your browser.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23002e63'/%3E%3Cpath d='M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0' stroke='%237dba00' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='1.8' fill='%237dba00'/%3E%3C/svg%3E">
   <script>
+    // Size the page to the screen: a 4K screen shows the same layout as 1080p, just bigger.
+    // The size comes from the screen, not the window, so the browser's zoom keeps working.
+    (function () {
+      var d = document.documentElement;
+      function fit() {
+        var f = Math.min(3, Math.max(1, (screen.width || 1920) / 1920));
+        var px = 16 * f;
+        d.style.fontSize = px + 'px';
+        // Wide, tall windows get three columns that fit without scrolling the page.
+        d.classList.toggle('fit', innerWidth / px >= 72 && innerHeight / px >= 44);
+      }
+      fit();
+      addEventListener('resize', fit);
+    })();
     // Apply the saved theme before the page draws, so it never flashes.
     try {
       var t = (JSON.parse(localStorage.getItem('wifi-voucher-cards.settings.v1') || '{}') || {}).theme;
@@ -18,7 +32,7 @@
 <body>
   <style id="page-style"></style>
 
-  <div class="app" id="app" data-view="vouchers">
+  <div class="app">
     <header class="topbar">
       <div class="brand">
         <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--navy)"/><path d="M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0" stroke="var(--green)" stroke-width="2.4" fill="none" stroke-linecap="round"/><circle cx="16" cy="24" r="1.8" fill="var(--green)"/></svg>
@@ -34,39 +48,83 @@
     </header>
 
     <main class="layout">
-      <!-- Left: vouchers and card design, one at a time -->
-      <section class="side panel">
-        <div class="side-tabs" role="tablist">
-          <button type="button" role="tab" data-view="vouchers"><span class="step">1</span><span data-i18n="vouchers">Vouchers</span> <span class="pill" id="count">0</span></button>
-          <button type="button" role="tab" data-view="design"><span class="step">2</span><span data-i18n="step2">Card design</span></button>
-        </div>
-
-        <div class="pane pane-vouchers" data-pane="vouchers">
+      <section class="col col-left">
+        <!-- 1. Vouchers -->
+        <div class="panel">
+          <h2><span class="step">1</span><span data-i18n="step1">Add vouchers</span></h2>
           <label class="drop" id="drop" tabindex="0">
             <input type="file" id="file" accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain" multiple hidden>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            <span class="drop-text"><strong data-i18n="dropTitle">Drop a voucher PDF here</strong>
-            <span data-i18n="dropSub">FortiGate PDF, CSV or text file, or click to choose</span></span>
+            <strong data-i18n="dropTitle">Drop a voucher PDF here</strong>
+            <span data-i18n="dropSub">FortiGate PDF, CSV or text file, or click to choose</span>
           </label>
+
+          <div class="or"><span data-i18n="orType">or type them in</span></div>
 
           <form id="add-one" class="add-one" autocomplete="off">
             <input id="one-user" data-i18n-ph="phUser" placeholder="User ID" spellcheck="false">
             <input id="one-pass" data-i18n-ph="phPass" placeholder="Password" spellcheck="false">
             <button class="btn" type="submit" data-i18n="add">Add</button>
           </form>
-          <div class="more-ways">
-            <button class="btn" type="button" data-open="paste-dlg">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4h6v3H9zM7 5.5H5.5v15h13v-15H17M8.5 11h7M8.5 14.5h7M8.5 18h4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span data-i18n="pasteMany">Paste many at once</span>
-            </button>
-            <button class="btn" type="button" data-open="gen">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM18 15l.9 2.1L21 18l-2.1.9L18 21l-.9-2.1L15 18l2.1-.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-              <span data-i18n="genTitle">Generate random codes</span>
-            </button>
-          </div>
+          <details class="paste">
+            <summary data-i18n="pasteMany">Paste many at once</summary>
+            <textarea id="paste" rows="5" spellcheck="false" placeholder="user0161  bexchzgf&#10;user0162  3bvxeqx7&#10;user0163, 7493eqa4"></textarea>
+            <div class="row">
+              <span class="hint" data-i18n="pasteHint">One voucher per line. Separate username and password with a space, comma or tab.</span>
+              <button class="btn" id="add-paste" type="button" data-i18n="addAll">Add all</button>
+            </div>
+          </details>
+          <details class="gen" id="gen">
+            <summary data-i18n="genTitle">Generate random codes</summary>
+            <div class="gen-sample">
+              <code id="gen-sample" aria-live="polite"></code>
+              <button class="icon-btn" id="gen-refresh" type="button" data-i18n-title="genRefresh" title="New example">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4.5h-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="meter" id="gen-meter"><span></span></div>
+            <p class="meter-label" id="gen-strength"></p>
 
-          <div class="list-head">
-            <h2 data-i18n="vouchers">Vouchers</h2>
+            <div class="fields">
+              <div class="field wide"><span data-i18n="genLength">Password length</span>
+                <span class="range"><input type="range" id="gen-length-r" min="4" max="32" data-g="length"><input type="number" id="gen-length" min="4" max="32" data-g="length"></span>
+              </div>
+              <div class="field wide"><span data-i18n="genMode">Make it</span>
+                <div class="modes" id="gen-mode" role="radiogroup">
+                  <button type="button" role="radio" data-mode="say"><strong data-i18n="modeSay">Easy to say</strong><small data-i18n="modeSaySub">Letters only</small></button>
+                  <button type="button" role="radio" data-mode="read"><strong data-i18n="modeRead">Easy to read</strong><small data-i18n="modeReadSub">No 0/O, 1/l/I</small></button>
+                  <button type="button" role="radio" data-mode="all"><strong data-i18n="modeAll">All characters</strong><small data-i18n="modeAllSub">Any combination</small></button>
+                </div>
+              </div>
+              <div class="field wide"><span data-i18n="genChars">Use</span>
+                <div class="chips">
+                  <label class="chip"><input type="checkbox" data-g="upper"> <span data-i18n="chUpper">Uppercase</span> <code>ABC</code></label>
+                  <label class="chip"><input type="checkbox" data-g="lower"> <span data-i18n="chLower">Lowercase</span> <code>abc</code></label>
+                  <label class="chip"><input type="checkbox" data-g="digits"> <span data-i18n="chDigits">Numbers</span> <code>123</code></label>
+                  <label class="chip"><input type="checkbox" data-g="symbols"> <span data-i18n="chSymbols">Symbols</span> <code>#$&amp;</code></label>
+                </div>
+              </div>
+              <label class="field"><span data-i18n="genUsers">Usernames</span>
+                <select data-g="userMode">
+                  <option value="numbered" data-i18n="usersNumbered">Numbered</option>
+                  <option value="random" data-i18n="usersRandom">Random</option>
+                </select>
+              </label>
+              <label class="field"><span data-i18n="genCount">How many</span><input type="number" min="1" max="1000" data-g="count"></label>
+              <label class="field num-only"><span data-i18n="genPrefix">Start of username</span><input data-g="prefix" spellcheck="false" maxlength="20"></label>
+              <label class="field num-only"><span data-i18n="genStart">First number</span><input type="number" min="0" data-g="start"></label>
+            </div>
+            <div class="row gen-go">
+              <span class="hint" id="gen-example"></span>
+              <button class="btn primary" id="gen-add" type="button" data-i18n="genAdd">Generate and add</button>
+            </div>
+            <p class="hint gen-note" data-i18n="genNote">These codes only let guests in after the same usernames and passwords are added to your Wi-Fi system (for example as FortiGate guest users).</p>
+          </details>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <h2><span data-i18n="vouchers">Vouchers</span> <span class="pill" id="count">0</span></h2>
             <div class="head-actions">
               <button class="link" id="toggle-all" type="button">Select none</button>
               <button class="link danger" id="clear-all" type="button" data-i18n="clearAll">Clear all</button>
@@ -76,9 +134,13 @@
           <p id="empty" class="empty" data-i18n="empty">No vouchers yet. Drop a PDF or type one in above.</p>
         </div>
 
-        <div class="pane pane-design" data-pane="design">
-          <div class="pane-head">
-            <span class="hint" data-i18n="designHint">Changes show in the preview straight away.</span>
+      </section>
+
+      <section class="col col-mid">
+        <!-- 2. Design -->
+        <div class="panel">
+          <div class="panel-head">
+            <h2><span class="step">2</span><span data-i18n="step2">Card design</span></h2>
             <button class="link" id="reset-design" type="button" data-i18n="reset">Reset</button>
           </div>
           <div class="fields">
@@ -121,9 +183,10 @@
         </div>
       </section>
 
-      <!-- Right: output and a one-page preview -->
-      <section class="stage-col" data-pane="print">
-        <div class="panel out-bar">
+      <!-- 3. Output -->
+      <section class="col col-right">
+        <div class="panel output">
+          <h2><span class="step">3</span><span data-i18n="step3">Print</span></h2>
           <div class="tabs" role="tablist">
             <button role="tab" data-out="zebra" type="button">
               <strong data-i18n="tabZebra">Zebra label</strong><span data-i18n="tabZebraSub">90 × 50 mm, one card per label</span>
@@ -132,6 +195,7 @@
               <strong data-i18n="tabA4">A4 sheet</strong><span data-i18n="tabA4Sub">10 cards per page, for big batches</span>
             </button>
           </div>
+
           <div class="out" data-for="zebra">
             <div class="actions">
               <button class="btn primary" id="dl-zpl" type="button">
@@ -140,12 +204,31 @@
               </button>
               <button class="btn" id="copy-zpl" type="button" data-i18n="copyZpl">Copy ZPL</button>
               <button class="btn" id="print-label" type="button" data-i18n="printDriver">Print with driver</button>
-              <button class="btn ghost" type="button" data-open="printer-dlg">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.6-2-3.4-2.4 1a7.5 7.5 0 0 0-2.6-1.5L14 2.5h-4l-.4 2.5A7.5 7.5 0 0 0 7 6.5l-2.4-1-2 3.4 2 1.6a7.6 7.6 0 0 0 0 3l-2 1.6 2 3.4 2.4-1a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.4 1 2-3.4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg>
-                <span data-i18n="printerSettings">Printer settings</span> <span class="muted" id="printer-summary"></span>
-              </button>
             </div>
+            <details class="printer">
+              <summary><span data-i18n="printerSettings">Printer settings</span> <span class="muted" id="printer-summary"></span></summary>
+              <div class="fields">
+                <label class="field"><span data-i18n="resolution">Resolution</span>
+                  <select data-s="dpi" data-num><option value="203">203 dpi (ZD421)</option><option value="300">300 dpi</option></select>
+                </label>
+                <label class="field"><span data-i18n="copies">Copies of each card</span><input type="number" min="1" max="20" data-s="copies" data-num></label>
+                <label class="field"><span data-i18n="darkness">Darkness (0–30)</span><input type="number" min="0" max="30" data-s="darkness" data-i18n-ph="printerDefault"></label>
+                <label class="field"><span data-i18n="speed">Speed (inch/s)</span><input type="number" min="2" max="6" data-s="speed" data-i18n-ph="printerDefault"></label>
+                <label class="field"><span data-i18n="shiftX">Shift right (mm)</span><input type="number" step="0.5" data-s="offsetX" data-num></label>
+                <label class="field"><span data-i18n="shiftY">Shift down (mm)</span><input type="number" step="0.5" data-s="offsetY" data-num></label>
+              </div>
+            </details>
+            <details class="help">
+              <summary data-i18n="helpTitle">How do I send a ZPL file to the printer?</summary>
+              <ul>
+                <li data-i18n-html="help1"></li>
+                <li data-i18n-html="help2"></li>
+                <li data-i18n-html="help3"></li>
+                <li data-i18n-html="help4"></li>
+              </ul>
+            </details>
           </div>
+
           <div class="out" data-for="a4">
             <div class="actions">
               <button class="btn primary" id="print-a4" type="button">
@@ -158,130 +241,21 @@
           </div>
         </div>
 
-        <div class="stage-wrap">
-          <div class="stage" id="stage">
-            <div id="preview" class="preview"></div>
+        <div class="preview-wrap">
+          <div class="preview-head">
+            <h3 data-i18n="preview">Preview</h3>
+            <span class="muted" id="preview-note"></span>
           </div>
-          <div class="pager" id="pager">
-            <span class="muted preview-note" id="preview-note"></span>
-            <div class="pager-ctl">
-              <button class="icon-btn" id="pg-prev" type="button" data-i18n-title="prevPage" title="Previous page">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <input type="range" id="pg-range" min="1" max="1" value="1" data-i18n-aria="pickPage" aria-label="Pick a page">
-              <select id="pg-select" data-i18n-aria="pickPage" aria-label="Pick a page"></select>
-              <button class="icon-btn" id="pg-next" type="button" data-i18n-title="nextPage" title="Next page">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-            </div>
-          </div>
+          <div id="preview" class="preview"></div>
         </div>
       </section>
     </main>
 
     <footer class="foot">
-      <span data-i18n="footPrivacy">Your vouchers never leave this page: PDFs are read in the browser and nothing is uploaded.</span>
-      <span class="credit" id="made-by">Made by Leonidas Kampaxis</span>
+      <p data-i18n="footPrivacy">Your vouchers never leave this page: PDFs are read in the browser and nothing is uploaded.</p>
+      <p class="credit" id="made-by">Made by Leonidas Kampaxis</p>
     </footer>
-
-    <!-- Phones: one screen at a time -->
-    <nav class="bottom-nav" aria-label="Sections">
-      <button type="button" data-view="vouchers">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v10H4zM8 11h8M8 14h5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/></svg>
-        <span data-i18n="vouchers">Vouchers</span><span class="pill" id="count-nav">0</span>
-      </button>
-      <button type="button" data-view="design">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.6-1.6 0-1.2-1-1.5-1-2.6 0-.9.7-1.6 1.6-1.6H17a4 4 0 0 0 4-4C21 6.6 17 3 12 3zM7.5 12.5h0M9.5 8h0M14.5 8h0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span data-i18n="step2">Card design</span>
-      </button>
-      <button type="button" data-view="print">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V4h10v5M7 17H5a1 1 0 0 1-1-1v-5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-2M7 14h10v6H7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-        <span data-i18n="step3">Print</span>
-      </button>
-    </nav>
   </div>
-
-  <!-- Dialogs -->
-  <dialog class="dlg" id="paste-dlg" aria-labelledby="paste-title">
-    <div class="dlg-head"><h2 id="paste-title" data-i18n="pasteMany">Paste many at once</h2><button class="icon-btn" type="button" data-close data-i18n-title="close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
-    <div class="dlg-body">
-      <textarea id="paste" rows="10" spellcheck="false" placeholder="user0161  bexchzgf&#10;user0162  3bvxeqx7&#10;user0163, 7493eqa4"></textarea>
-      <p class="hint" data-i18n="pasteHint">One voucher per line. Separate username and password with a space, comma or tab.</p>
-    </div>
-    <div class="dlg-foot"><button class="btn primary" id="add-paste" type="button" data-i18n="addAll">Add all</button></div>
-  </dialog>
-
-  <dialog class="dlg dlg-wide" id="gen" aria-labelledby="gen-title">
-    <div class="dlg-head"><h2 id="gen-title" data-i18n="genTitle">Generate random codes</h2><button class="icon-btn" type="button" data-close data-i18n-title="close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
-    <div class="dlg-body">
-      <div class="gen-sample">
-        <code id="gen-sample" aria-live="polite"></code>
-        <button class="icon-btn" id="gen-refresh" type="button" data-i18n-title="genRefresh" title="New example">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4.5h-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-      </div>
-      <div class="meter" id="gen-meter"><span></span></div>
-      <p class="meter-label" id="gen-strength"></p>
-
-      <div class="fields">
-        <div class="field wide"><span data-i18n="genLength">Password length</span>
-          <span class="range"><input type="range" id="gen-length-r" min="4" max="32" data-g="length"><input type="number" id="gen-length" min="4" max="32" data-g="length"></span>
-        </div>
-        <div class="field wide"><span data-i18n="genMode">Make it</span>
-          <div class="modes" id="gen-mode" role="radiogroup">
-            <button type="button" role="radio" data-mode="say"><strong data-i18n="modeSay">Easy to say</strong><small data-i18n="modeSaySub">Letters only</small></button>
-            <button type="button" role="radio" data-mode="read"><strong data-i18n="modeRead">Easy to read</strong><small data-i18n="modeReadSub">No 0/O, 1/l/I</small></button>
-            <button type="button" role="radio" data-mode="all"><strong data-i18n="modeAll">All characters</strong><small data-i18n="modeAllSub">Any combination</small></button>
-          </div>
-        </div>
-        <div class="field wide"><span data-i18n="genChars">Use</span>
-          <div class="chips">
-            <label class="chip"><input type="checkbox" data-g="upper"> <span data-i18n="chUpper">Uppercase</span> <code>ABC</code></label>
-            <label class="chip"><input type="checkbox" data-g="lower"> <span data-i18n="chLower">Lowercase</span> <code>abc</code></label>
-            <label class="chip"><input type="checkbox" data-g="digits"> <span data-i18n="chDigits">Numbers</span> <code>123</code></label>
-            <label class="chip"><input type="checkbox" data-g="symbols"> <span data-i18n="chSymbols">Symbols</span> <code>#$&amp;</code></label>
-          </div>
-        </div>
-        <label class="field"><span data-i18n="genUsers">Usernames</span>
-          <select data-g="userMode">
-            <option value="numbered" data-i18n="usersNumbered">Numbered</option>
-            <option value="random" data-i18n="usersRandom">Random</option>
-          </select>
-        </label>
-        <label class="field"><span data-i18n="genCount">How many</span><input type="number" min="1" max="1000" data-g="count"></label>
-        <label class="field num-only"><span data-i18n="genPrefix">Start of username</span><input data-g="prefix" spellcheck="false" maxlength="20"></label>
-        <label class="field num-only"><span data-i18n="genStart">First number</span><input type="number" min="0" data-g="start"></label>
-      </div>
-      <div class="row gen-go">
-        <span class="hint" id="gen-example"></span>
-        <button class="btn primary" id="gen-add" type="button" data-i18n="genAdd">Generate and add</button>
-      </div>
-      <p class="hint gen-note" data-i18n="genNote">These codes only let guests in after the same usernames and passwords are added to your Wi-Fi system (for example as FortiGate guest users).</p>
-    </div>
-  </dialog>
-
-  <dialog class="dlg dlg-wide" id="printer-dlg" aria-labelledby="printer-title">
-    <div class="dlg-head"><h2 id="printer-title" data-i18n="printerSettings">Printer settings</h2><button class="icon-btn" type="button" data-close data-i18n-title="close" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button></div>
-    <div class="dlg-body">
-      <div class="fields printer-fields">
-        <label class="field"><span data-i18n="resolution">Resolution</span>
-          <select data-s="dpi" data-num><option value="203">203 dpi (ZD421)</option><option value="300">300 dpi</option></select>
-        </label>
-        <label class="field"><span data-i18n="copies">Copies of each card</span><input type="number" min="1" max="20" data-s="copies" data-num></label>
-        <label class="field"><span data-i18n="darkness">Darkness (0–30)</span><input type="number" min="0" max="30" data-s="darkness" data-i18n-ph="printerDefault"></label>
-        <label class="field"><span data-i18n="speed">Speed (inch/s)</span><input type="number" min="2" max="6" data-s="speed" data-i18n-ph="printerDefault"></label>
-        <label class="field"><span data-i18n="shiftX">Shift right (mm)</span><input type="number" step="0.5" data-s="offsetX" data-num></label>
-        <label class="field"><span data-i18n="shiftY">Shift down (mm)</span><input type="number" step="0.5" data-s="offsetY" data-num></label>
-      </div>
-      <h3 class="dlg-sub" data-i18n="helpTitle">How do I send a ZPL file to the printer?</h3>
-    <ul class="help-list">
-      <li data-i18n-html="help1"></li>
-      <li data-i18n-html="help2"></li>
-      <li data-i18n-html="help3"></li>
-      <li data-i18n-html="help4"></li>
-    </ul>
-    </div>
-  </dialog>
 
   <div id="print-root" aria-hidden="true"></div>
   <div id="toast" role="status" aria-live="polite"></div>
