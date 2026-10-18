@@ -2,7 +2,10 @@
 import { CARD_TEXT, validityLine } from './i18n.js';
 import { GEN_DEFAULTS } from './generate.js';
 
-export const BUILTIN_LOGOS = [{ id: 'builtin', name: 'Hellenic Cables', data: 'assets/logo.png', builtin: true }];
+export const BUILTIN_LOGOS = [
+  { id: 'builtin', name: 'Hellenic Cables', data: 'assets/logo.png', builtin: true },
+  { id: 'builtin-cpw', name: 'Corinth Pipeworks', data: 'assets/logo-corinth-pipeworks.png', builtin: true },
+];
 
 const BASE = Object.freeze({
   uiLang: 'en',

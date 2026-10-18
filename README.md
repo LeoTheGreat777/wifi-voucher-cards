@@ -82,4 +82,4 @@ npm test                      # parser and ZPL tests (Node 20+)
 - [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0), in `vendor/pdfjs`
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase (MIT), in `vendor/qrcode.mjs`
 - [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/) fonts (SIL Open Font License), in `vendor/fonts`
-- The Hellenic Cables logo in `assets/` belongs to Hellenic Cables and is not covered by the MIT licence.
+- The Hellenic Cables and Corinth Pipeworks logos in `assets/` belong to those companies and are not covered by the MIT licence.
