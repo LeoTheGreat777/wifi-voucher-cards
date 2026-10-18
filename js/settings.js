@@ -61,6 +61,10 @@ export function loadSettings(detectedLang) {
   if (s.logo === 'custom') s.logo = 'builtin';
   if (!String(s.ssid || '').trim()) s.ssid = BASE.ssid;
   s.gen = { ...GEN_DEFAULTS, ...(saved.gen || {}) };
+  // Earlier versions used capitalised labels; move untouched ones to the new defaults.
+  const OLD_LABELS = { USERNAME: 1, PASSWORD: 1, 'ΟΝΟΜΑ ΧΡΗΣΤΗ': 1, ΚΩΔΙΚΟΣ: 1, UTILIZATOR: 1, PAROLĂ: 1 };
+  if (OLD_LABELS[s.userLabel]) s.userLabel = CARD_TEXT[s.lang]?.userLabel || CARD_TEXT.en.userLabel;
+  if (OLD_LABELS[s.passLabel]) s.passLabel = CARD_TEXT[s.lang]?.passLabel || CARD_TEXT.en.passLabel;
   // The validity line always follows the menu.
   s.subtitle = validityLine(s.lang, s.validity);
   return s;

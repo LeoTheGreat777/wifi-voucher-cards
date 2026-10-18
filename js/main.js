@@ -10,7 +10,6 @@ import { LANGS, detectLang, tr, applyI18n, count, formatDuration, durationParts,
 const $ = (sel, el = document) => el.querySelector(sel);
 const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 
-const PREVIEW_MAX = 12;
 const SAMPLE = [
   { user: 'user0161', pass: 'bexchzgf' },
   { user: 'user0162', pass: '3bvxeqx7' },
@@ -572,6 +571,14 @@ function schedulePreview() {
   previewTimer = setTimeout(renderPreview, 80);
 }
 
+let previewObserver = null;
+
+/** Draws preview items only when they scroll into view, so long batches stay fast. */
+function whenVisible(el, draw) {
+  el._draw = draw;
+  previewObserver.observe(el);
+}
+
 async function renderPreview() {
   const token = ++previewToken;
   await loadFonts();
@@ -583,48 +590,68 @@ async function renderPreview() {
   const cards = sample ? SAMPLE : list;
   const box = $('#preview');
   const note = $('#preview-note');
+  const top = box.scrollTop;
   box.textContent = '';
+  previewObserver?.disconnect();
+  previewObserver = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting || token !== previewToken) continue;
+        previewObserver.unobserve(e.target);
+        e.target._draw();
+      }
+    },
+    { root: box, rootMargin: '600px 0px' }
+  );
 
   if (settings.output === 'a4') {
     box.className = 'preview sheet-mode';
-    const page = cards.slice(0, A4.perPage);
     const pages = Math.ceil(cards.length / A4.perPage);
-    const div = document.createElement('div');
-    div.className = 'sheet-shot';
-    div.innerHTML = sheetSvg(page, settings, {
-      measure,
-      logo,
-      qr,
-      width: '100%',
-      height: '100%',
-      pageLabel: pages > 1 ? t('pageOf', { p: 1, n: pages }) : '',
-      cutNote: t('cutNote'),
-    });
-    box.appendChild(div);
+    for (let p = 0; p < pages; p++) {
+      const div = document.createElement('div');
+      div.className = 'sheet-shot';
+      whenVisible(div, () => {
+        div.innerHTML = sheetSvg(cards.slice(p * A4.perPage, (p + 1) * A4.perPage), settings, {
+          measure,
+          logo,
+          qr,
+          width: '100%',
+          height: '100%',
+          pageLabel: pages > 1 ? t('pageOf', { p: p + 1, n: pages }) : '',
+          cutNote: t('cutNote'),
+        });
+      });
+      box.appendChild(div);
+    }
     note.innerHTML = sample
       ? `<span class="sample-badge">${t('sample')}</span> ${t('sampleA4')}`
       : pages > 1
-        ? t('pageOf', { p: 1, n: pages })
+        ? t('scrollAll', { n: plural(pages, 'page') })
         : '';
+    box.scrollTop = top;
     return;
   }
 
   box.className = 'preview';
   const dpmm = dotsPerMm(settings.dpi);
-  const shown = cards.slice(0, PREVIEW_MAX);
   note.innerHTML = sample
     ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}`
-    : t('zebraNote') + (cards.length > shown.length ? ' · ' + t('firstOf', { n: shown.length, total: cards.length }) : '');
-  for (const v of shown) {
-    const bmp = rasterCard(v, settings, { dpmm, logo: logo?.img || null, logoStyle: settings.logoStyle, qr, logoCache: logoBitsCache });
-    if (token !== previewToken) return;
+    : t('zebraNote') + (cards.length > 4 ? ' · ' + t('scrollAll', { n: plural(cards.length, 'label') }) : '');
+  for (const v of cards) {
     const shot = document.createElement('div');
     shot.className = 'card-shot thermal';
     shot.title = `${v.user}${v.pass ? ' / ' + v.pass : ''}`;
-    shot.appendChild(bitmapToCanvas(bmp));
+    whenVisible(shot, () => {
+      const bmp = rasterCard(v, settings, { dpmm, logo: logo?.img || null, logoStyle: settings.logoStyle, qr, logoCache: logoBitsCache });
+      // A small 1-bit PNG uses far less memory than keeping a canvas per label.
+      const img = new Image();
+      img.alt = '';
+      img.src = bitmapToCanvas(bmp).toDataURL('image/png');
+      shot.appendChild(img);
+    });
     box.appendChild(shot);
-    await nextFrame();
   }
+  box.scrollTop = top;
 }
 
 // ---------- outputs ----------
