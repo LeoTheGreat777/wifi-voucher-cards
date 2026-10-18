@@ -166,7 +166,9 @@ function renderList() {
   });
   list.appendChild(frag);
   $('#empty').hidden = vouchers.length > 0;
+  $('.vlist-wrap').hidden = !vouchers.length;
   updateCounts();
+  fitLayout();
 }
 
 function updateCounts() {
@@ -352,7 +354,7 @@ function fillForm() {
   $('#card-lang').value = settings.lang;
   const vp = durationParts(settings.validity);
   const vn = $('#valid-n');
-  if (vp.unit !== 'none' || !vn.value) vn.value = vp.n === '' ? 12 : vp.n;
+  if (vp.unit !== 'none' || !vn.value) vn.value = vp.n === '' ? 8 : vp.n;
   vn.disabled = vp.unit === 'none';
   $('#valid-unit').value = vp.unit;
   renderLogos();
@@ -463,9 +465,9 @@ function renderLogos() {
       del.textContent = '×';
       del.title = t('deleteLogo');
       del.setAttribute('role', 'button');
-      del.addEventListener('click', (e) => {
+      del.addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (!confirm(t('confirmDeleteLogo', { name: l.name }))) return;
+        if (!(await ask($('#ask-logo'), t('confirmDeleteLogo', { name: l.name }), t('yesDelete')))) return;
         deleteLogo(l.id);
         if (settings.logo === l.id) settings.logo = 'builtin';
         saveSettings(settings);
@@ -590,7 +592,8 @@ async function renderPreview() {
   const cards = sample ? SAMPLE : list;
   const box = $('#preview');
   const note = $('#preview-note');
-  const top = box.scrollTop;
+  const left = box.scrollLeft;
+  sizePreview();
   box.textContent = '';
   previewObserver?.disconnect();
   previewObserver = new IntersectionObserver(
@@ -601,7 +604,7 @@ async function renderPreview() {
         e.target._draw();
       }
     },
-    { root: box, rootMargin: '600px 0px' }
+    { root: box, rootMargin: '0px 800px' }
   );
 
   if (settings.output === 'a4') {
@@ -628,11 +631,11 @@ async function renderPreview() {
       : pages > 1
         ? t('scrollAll', { n: plural(pages, 'page') })
         : '';
-    box.scrollTop = top;
+    box.scrollLeft = left;
     return;
   }
 
-  box.className = 'preview';
+  box.className = 'preview zebra';
   const dpmm = dotsPerMm(settings.dpi);
   note.innerHTML = sample
     ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}`
@@ -651,7 +654,7 @@ async function renderPreview() {
     });
     box.appendChild(shot);
   }
-  box.scrollTop = top;
+  box.scrollLeft = left;
 }
 
 // ---------- outputs ----------
@@ -762,32 +765,77 @@ window.addEventListener('afterprint', () => {
 
 // ---------- wiring ----------
 
-/** Keeps the print column inside the window on computers, so only the preview box scrolls. */
-function fitPrintColumn() {
-  const col = $('.col-right');
-  if (innerWidth <= 980) {
-    col.style.maxHeight = '';
-    return;
+/** How much room the page needs at its normal size, then fits it to the window (see index.html). */
+let lastFit = '';
+function fitLayout() {
+  const root = document.documentElement;
+  const zoomOf = () => parseFloat(root.style.zoom) || 1;
+  let z = zoomOf();
+  for (let i = 0; i < 2; i++) {
+    root.style.setProperty('--list-min', vouchers.length ? '160px' : '0px');
+    root.dataset.measure = '';
+    // offsetHeight is in the page's own pixels, so the zoom doesn't change it.
+    const need = Math.ceil($('.topbar').offsetHeight + $('.layout').offsetHeight + $('.foot').offsetHeight) + 2;
+    delete root.dataset.measure;
+    z = window.fitZoom ? window.fitZoom(need) : 1;
+    const vh = innerHeight / z;
+    root.style.setProperty('--app-h', Math.max(need, vh) + 'px');
+    const key = `${z}|${need}|${innerWidth}x${innerHeight}`;
+    if (key === lastFit) break;
+    lastFit = key;
   }
-  const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
-  // getBoundingClientRect is in window pixels; the column's own sizes are in zoomed pixels.
-  const k = CSS_ZOOM_SCALES_RECTS ? 1 : z;
-  const top = Math.max(16 * z, col.getBoundingClientRect().top * k);
-  // Near the bottom of the page, stay above the footer instead of sliding under the top edge.
-  const bottom = Math.min(innerHeight - 16 * z, $('.layout').getBoundingClientRect().bottom * k - 8 * z);
-  col.style.maxHeight = Math.max(320, Math.floor((bottom - top) / z)) + 'px';
+  sizePreview();
 }
-const CSS_ZOOM_SCALES_RECTS = (() => {
-  // Browsers differ on whether getBoundingClientRect includes CSS zoom; measure it once.
-  const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
-  if (z === 1) return true;
-  const probe = document.createElement('div');
-  probe.style.cssText = 'position:absolute;width:100px;height:1px;visibility:hidden';
-  document.body.appendChild(probe);
-  const w = probe.getBoundingClientRect().width;
-  probe.remove();
-  return Math.abs(w - 100 * z) < 1;
-})();
+
+/** Sizes the pages to the preview box: A4 pages as tall as the box, labels in rows that fill it. */
+function sizePreview() {
+  const body = $('.preview-body');
+  const box = $('#preview');
+  const ph = Math.max(160, body.clientHeight - 16);
+  box.style.setProperty('--ph', ph + 'px');
+  const gap = 16;
+  const rows = Math.max(1, Math.round((ph + gap) / (200 + gap)));
+  let ch = (ph - (rows - 1) * gap) / rows;
+  const cw = Math.min(Math.floor(ch * 90 / 50), Math.max(200, body.clientWidth - 12));
+  box.style.setProperty('--rows', String(rows));
+  box.style.setProperty('--cw', cw + 'px');
+}
+
+/** Asks a yes/no question inside the page, in the given box. Resolves to true for yes. */
+function ask(box, message, yesLabel) {
+  box._done?.(false);
+  return new Promise((resolve) => {
+    box.textContent = '';
+    const p = document.createElement('p');
+    p.textContent = message;
+    const no = document.createElement('button');
+    no.type = 'button';
+    no.className = 'btn small';
+    no.textContent = t('cancel');
+    const yes = document.createElement('button');
+    yes.type = 'button';
+    yes.className = 'btn small danger';
+    yes.textContent = yesLabel;
+    const btns = document.createElement('div');
+    btns.className = 'ask-btns';
+    btns.append(no, yes);
+    box.append(p, btns);
+    box.hidden = false;
+    const onKey = (e) => e.key === 'Escape' && done(false);
+    const done = (v) => {
+      box._done = null;
+      box.hidden = true;
+      box.textContent = '';
+      document.removeEventListener('keydown', onKey);
+      resolve(v);
+    };
+    box._done = done;
+    no.addEventListener('click', () => done(false));
+    yes.addEventListener('click', () => done(true));
+    document.addEventListener('keydown', onKey);
+    no.focus();
+  });
+}
 
 function init() {
   applyTheme();
@@ -866,8 +914,9 @@ function init() {
     renderList();
     schedulePreview();
   });
-  $('#clear-all').addEventListener('click', () => {
-    if (!confirm(t('confirmClear', { n: plural(vouchers.length, 'voucher') }))) return;
+  $('#clear-all').addEventListener('click', async () => {
+    if (!vouchers.length) return;
+    if (!(await ask($('#ask-clear'), t('confirmClear', { n: plural(vouchers.length, 'voucher') }), t('yesRemove')))) return;
     vouchers = [];
     persist();
     renderList();
@@ -880,8 +929,30 @@ function init() {
   $('#print-label').addEventListener('click', () => printCards('label'));
   $('#print-a4').addEventListener('click', () => printCards('a4'));
 
-  for (const ev of ['scroll', 'resize']) addEventListener(ev, fitPrintColumn, { passive: true });
-  fitPrintColumn();
+  // Keep everything in the window when it changes size or the panels grow (QR on, list filled...).
+  let fitFrame = 0;
+  const refit = () => {
+    cancelAnimationFrame(fitFrame);
+    fitFrame = requestAnimationFrame(fitLayout);
+  };
+  addEventListener('resize', refit, { passive: true });
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(refit);
+    for (const el of $$('.col-add > .panel:first-child, .design .fields, .col-right > .panel, .topbar, .foot')) ro.observe(el);
+    new ResizeObserver(sizePreview).observe($('.preview-body'));
+  }
+  // A mouse wheel scrolls the preview sideways, page by page.
+  const box = $('#preview');
+  box.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey || Math.abs(e.deltaX) >= Math.abs(e.deltaY) || box.scrollWidth <= box.clientWidth) return;
+      e.preventDefault();
+      box.scrollLeft += e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? box.clientWidth : 1);
+    },
+    { passive: false }
+  );
+  fitLayout();
   if (document.fonts) document.fonts.addEventListener?.('loadingdone', schedulePreview);
   schedulePreview();
 }

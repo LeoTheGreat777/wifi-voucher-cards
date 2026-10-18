@@ -11,7 +11,7 @@ const BASE = Object.freeze({
   uiLang: 'en',
   theme: 'auto', // 'auto' (follow the system) | 'light' | 'dark'
   lang: 'en', // card language
-  validity: { d: 0, h: 12, m: 0 },
+  validity: { d: 0, h: 8, m: 0 },
   accent: '#7dba00',
   ink: '#002e63',
   logo: 'builtin', // 'none', 'builtin' or the id of a saved logo
@@ -70,6 +70,12 @@ export function loadSettings(detectedLang) {
   if (OLD_TITLES[s.title]) s.title = CARD_TEXT.en.title;
   if (OLD_LABELS[s.userLabel]) s.userLabel = CARD_TEXT[s.lang]?.userLabel || CARD_TEXT.en.userLabel;
   if (OLD_LABELS[s.passLabel]) s.passLabel = CARD_TEXT[s.lang]?.passLabel || CARD_TEXT.en.passLabel;
+  // The default validity went from 12 to 8 hours; move the old default over once.
+  if (!saved.v8h) {
+    const v = s.validity || {};
+    if (!v.d && v.h === 12 && !v.m) s.validity = { ...BASE.validity };
+    s.v8h = true;
+  }
   // The validity line always follows the menu.
   s.subtitle = validityLine(s.lang, s.validity);
   return s;
