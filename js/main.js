@@ -14,6 +14,11 @@ const SAMPLE = [
   { user: 'user0161', pass: 'bexchzgf' },
   { user: 'user0162', pass: '3bvxeqx7' },
 ];
+/** A full sample A4 page, so the preview shows what a real sheet looks like. */
+const SAMPLE_A4 = [
+  ...SAMPLE,
+  ...['7493eqa4', 'fu3c2xse', 'ee7nbrbg', 'vahqv53y', 'svrgnuqh', 'fg34qpmr', 'zrp4yc98', '7ubzd2mw'].map((pass, i) => ({ user: `user0${163 + i}`, pass })),
+];
 
 let settings = loadSettings(detectLang());
 /** @type {Array<{user: string, pass: string, on: boolean}>} */
@@ -167,6 +172,7 @@ function renderList() {
   list.appendChild(frag);
   $('#empty').hidden = vouchers.length > 0;
   $('.vlist-wrap').hidden = !vouchers.length;
+  $('.vouchers').classList.toggle('has-items', vouchers.length > 0);
   updateCounts();
   fitLayout();
 }
@@ -589,7 +595,7 @@ async function renderPreview() {
   const qr = currentQr();
   const list = selected();
   const sample = !list.length;
-  const cards = sample ? SAMPLE : list;
+  const cards = sample ? (settings.output === 'a4' ? SAMPLE_A4 : SAMPLE) : list;
   const box = $('#preview');
   const note = $('#preview-note');
   const left = box.scrollLeft;
@@ -775,11 +781,11 @@ function fitLayout() {
     root.style.setProperty('--list-min', vouchers.length ? '160px' : '0px');
     root.dataset.measure = '';
     // offsetHeight is in the page's own pixels, so the zoom doesn't change it.
-    const need = Math.ceil($('.topbar').offsetHeight + $('.layout').offsetHeight + $('.foot').offsetHeight) + 2;
+    const layoutH = $('.layout').offsetHeight;
+    const need = Math.ceil($('.topbar').offsetHeight + layoutH + $('.foot').offsetHeight) + 2;
     delete root.dataset.measure;
     z = window.fitZoom ? window.fitZoom(need) : 1;
-    const vh = innerHeight / z;
-    root.style.setProperty('--app-h', Math.max(need, vh) + 'px');
+    root.style.setProperty('--layout-h', layoutH + 'px');
     const key = `${z}|${need}|${innerWidth}x${innerHeight}`;
     if (key === lastFit) break;
     lastFit = key;
@@ -794,7 +800,7 @@ function sizePreview() {
   const ph = Math.max(160, body.clientHeight - 16);
   box.style.setProperty('--ph', ph + 'px');
   const gap = 16;
-  const rows = Math.max(1, Math.round((ph + gap) / (200 + gap)));
+  const rows = Math.max(1, Math.round((ph + gap) / (165 + gap)));
   let ch = (ph - (rows - 1) * gap) / rows;
   const cw = Math.min(Math.floor(ch * 90 / 50), Math.max(200, body.clientWidth - 12));
   box.style.setProperty('--rows', String(rows));

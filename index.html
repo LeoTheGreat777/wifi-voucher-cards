@@ -26,8 +26,9 @@
         var k = (window.devicePixelRatio || 1) / baseDpr; // browser zoom since the page opened
         var uw = w * k, uh = h * k, z = 1;
         if (w > 980) {
-          var step = uw >= 3400 ? 1.45 : uw >= 2800 ? 1.3 : uw >= 2200 ? 1.15 : 1;
-          z = Math.max(0.7, Math.floor(Math.min(step, uh / need, uw / 1240) * 100 + 1e-6) / 100);
+          // Grows with the screen so it fills about the same share of it, up to 1.8x on 4K.
+          var grow = Math.min(1.8, Math.max(1, uw / 1700));
+          z = Math.max(0.7, Math.floor(Math.min(grow, uh / need, uw / 1240) * 100 + 1e-6) / 100);
         }
         root.style.zoom = z === 1 ? '' : String(z);
         root.dataset.cols = w <= 980 ? '1' : w / z >= 1200 ? '3' : '2';
