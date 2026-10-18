@@ -442,8 +442,24 @@ function setLogo(id) {
   schedulePreview();
 }
 
+// Easter egg: the Corinth Pipeworks logo turns the whole site maroon (see css/app.css).
+const FAVICON_CPW = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23710030'/%3E%3Cpath d='M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0' stroke='%23d9d9db' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='1.8' fill='%23d9d9db'/%3E%3C/svg%3E";
+let faviconDefault = null;
+function applyBrand() {
+  const cpw = settings.logo === 'builtin-cpw';
+  const root = document.documentElement;
+  if (cpw) root.dataset.brand = 'cpw';
+  else delete root.dataset.brand;
+  const icon = document.querySelector('link[rel=icon]');
+  if (icon) {
+    faviconDefault ??= icon.getAttribute('href');
+    icon.setAttribute('href', cpw ? FAVICON_CPW : faviconDefault);
+  }
+}
+
 /** The logo picker: no logo, the built-in one, saved ones (deletable) and an add button. */
 function renderLogos() {
+  applyBrand();
   const box = $('#logos');
   box.textContent = '';
   const opt = (id, inner, label) => {
