@@ -647,6 +647,8 @@ async function renderPreview() {
   if (a4) {
     const div = document.createElement('div');
     div.className = 'sheet-shot';
+    div.title = t('zoomHint');
+    div.dataset.i = String(previewView);
     div.innerHTML = sheetSvg(shown, settings, {
       measure,
       logo,
@@ -670,7 +672,8 @@ async function renderPreview() {
     for (const v of shown) {
       const shot = document.createElement('div');
       shot.className = 'card-shot thermal';
-      shot.title = `${v.user}${v.pass ? ' / ' + v.pass : ''}`;
+      shot.title = t('zoomHint');
+      shot.dataset.i = String(from + shown.indexOf(v));
       const bmp = rasterCard(v, settings, { dpmm, logo: logo?.img || null, logoStyle: settings.logoStyle, qr, logoCache: logoBitsCache });
       const img = new Image();
       img.alt = '';
@@ -689,6 +692,175 @@ async function renderPreview() {
   $('#pg-what').textContent = a4 ? '' : t('labelsRange', { a: from + 1, b: from + shown.length, n: cards.length });
   $('#pg-prev').disabled = previewView === 0;
   $('#pg-next').disabled = previewView >= previewViews - 1;
+}
+
+// ---------- big preview ----------
+// Clicking a preview page opens it large in the middle of the window, over a blurred page,
+// with a zoom from where it was. A4 pages and Zebra labels can be turned inside it.
+const viewer = { open: false, i: 0, n: 1, a4: false, token: 0, back: null };
+
+async function viewerData() {
+  await loadFonts();
+  const logo = await currentLogo();
+  const list = selected();
+  const a4 = settings.output === 'a4';
+  const cards = list.length ? list : a4 ? SAMPLE_A4 : SAMPLE;
+  return { a4, cards, logo, qr: currentQr() };
+}
+
+/** Sets the size of the big page so it fits the window with room for the buttons. */
+function viewerFit() {
+  const box = $('#viewer');
+  const item = $('#viewer-item');
+  const narrow = box.clientWidth < 640; // phones: the arrows sit at the bottom instead of the sides
+  const aw = Math.max(120, box.clientWidth - (narrow ? 24 : 160));
+  const ah = Math.max(120, box.clientHeight - (narrow ? 150 : 120));
+  const ratio = viewer.a4 ? 210 / 297 : 90 / 50;
+  let w = Math.min(aw, ah * ratio);
+  if (!viewer.a4) w = Math.min(w, 1200);
+  item.style.width = Math.floor(w) + 'px';
+  item.style.height = Math.floor(w / ratio) + 'px';
+}
+
+async function viewerShow(i) {
+  const token = ++viewer.token;
+  const d = await viewerData();
+  if (token !== viewer.token) return;
+  viewer.a4 = d.a4;
+  viewer.n = d.a4 ? Math.max(1, Math.ceil(d.cards.length / A4.perPage)) : d.cards.length;
+  viewer.i = Math.max(0, Math.min(viewer.n - 1, i));
+  const item = $('#viewer-item');
+  item.textContent = '';
+  item.className = 'viewer-item' + (d.a4 ? '' : ' thermal');
+  if (d.a4) {
+    const from = viewer.i * A4.perPage;
+    item.innerHTML = sheetSvg(d.cards.slice(from, from + A4.perPage), settings, {
+      measure,
+      logo: d.logo,
+      qr: d.qr,
+      width: '100%',
+      height: '100%',
+      pageLabel: viewer.n > 1 ? t('pageOf', { p: viewer.i + 1, n: viewer.n }) : '',
+      cutNote: t('cutNote'),
+    });
+  } else {
+    const bmp = rasterCard(d.cards[viewer.i], settings, { dpmm: dotsPerMm(settings.dpi), logo: d.logo?.img || null, logoStyle: settings.logoStyle, qr: d.qr, logoCache: logoBitsCache });
+    const img = new Image();
+    img.alt = '';
+    img.src = bitmapToCanvas(bmp).toDataURL('image/png');
+    item.appendChild(img);
+  }
+  viewerFit();
+  const box = $('#viewer');
+  box.classList.toggle('single', viewer.n < 2);
+  $('#viewer-count').textContent = t(d.a4 ? 'pageOf' : 'labelOf', { p: viewer.i + 1, n: viewer.n });
+  $('#viewer-prev').disabled = viewer.i === 0;
+  $('#viewer-next').disabled = viewer.i >= viewer.n - 1;
+  // Keep the small preview on the same page, so closing zooms back to it.
+  goView(d.a4 ? viewer.i : Math.floor(viewer.i / previewPer));
+}
+
+/** Moves and scales the big page so it sits exactly over `el` (for the zoom in and out). */
+function viewerFrom(el) {
+  const item = $('#viewer-item');
+  if (!el || !el.isConnected) return null;
+  const a = el.getBoundingClientRect();
+  const b = item.getBoundingClientRect();
+  if (!a.width || !b.width) return null;
+  const k = item.offsetWidth / b.width; // the page zoom, so the move is in the right units
+  return `translate(${(a.left - b.left) * k}px, ${(a.top - b.top) * k}px) scale(${a.width / b.width}, ${a.height / b.height})`;
+}
+
+const reduceMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+async function openViewer(el) {
+  if (viewer.open) return;
+  viewer.open = true;
+  viewer.back = document.activeElement;
+  const box = $('#viewer');
+  box.hidden = false;
+  await viewerShow(Number(el.dataset.i) || 0);
+  if (!viewer.open) return;
+  box.classList.add('on');
+  const from = viewerFrom(el);
+  if (from && !reduceMotion()) {
+    $('#viewer-item').animate([{ transform: from }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
+  }
+  $('#viewer-close').focus({ preventScroll: true });
+}
+
+function closeViewer() {
+  if (!viewer.open) return;
+  viewer.open = false;
+  viewer.token++;
+  const box = $('#viewer');
+  const item = $('#viewer-item');
+  const target = $(`#preview [data-i="${viewer.i}"]`);
+  const to = viewerFrom(target);
+  box.classList.remove('on');
+  const done = () => {
+    if (viewer.open) return;
+    box.hidden = true;
+    item.textContent = '';
+    (viewer.back?.isConnected ? viewer.back : $('.preview-body')).focus?.({ preventScroll: true });
+  };
+  if (reduceMotion()) return done();
+  const anim = item.animate(
+    [{ transform: 'none', opacity: 1 }, to ? { transform: to, opacity: 1 } : { transform: 'scale(.92)', opacity: 0 }],
+    { duration: 240, easing: 'cubic-bezier(.4,0,.2,1)', fill: 'forwards' }
+  );
+  anim.onfinish = () => {
+    anim.cancel();
+    done();
+  };
+}
+
+function bindViewer() {
+  const box = $('#viewer');
+  $('#preview').addEventListener('click', (e) => {
+    const el = e.target.closest('.card-shot, .sheet-shot');
+    if (el) openViewer(el);
+  });
+  box.addEventListener('click', (e) => {
+    if (e.target.closest('.viewer-btn') || $('#viewer-item').contains(e.target)) return;
+    closeViewer(); // a click anywhere outside the page closes it
+  });
+  $('#viewer-close').addEventListener('click', closeViewer);
+  $('#viewer-prev').addEventListener('click', () => viewerShow(viewer.i - 1));
+  $('#viewer-next').addEventListener('click', () => viewerShow(viewer.i + 1));
+  document.addEventListener('keydown', (e) => {
+    if (!viewer.open) return;
+    const k = { ArrowLeft: -1, ArrowUp: -1, PageUp: -1, ArrowRight: 1, ArrowDown: 1, PageDown: 1 }[e.key];
+    if (e.key === 'Escape') closeViewer();
+    else if (k) viewerShow(viewer.i + k);
+    else if (e.key === 'Home') viewerShow(0);
+    else if (e.key === 'End') viewerShow(viewer.n - 1);
+    else if (e.key === 'Tab') {
+      // Keep the keyboard inside the big preview while it is open.
+      const btns = $$('#viewer .viewer-btn').filter((b) => !b.disabled && b.offsetParent);
+      const at = btns.indexOf(document.activeElement);
+      btns[(at + (e.shiftKey ? btns.length - 1 : 1)) % btns.length]?.focus();
+    } else return;
+    e.preventDefault();
+  });
+  let sum = 0;
+  let at = 0;
+  box.addEventListener(
+    'wheel',
+    (e) => {
+      if (e.ctrlKey) return;
+      e.preventDefault();
+      if (viewer.n < 2) return;
+      sum += (Math.abs(e.deltaY) >= Math.abs(e.deltaX) ? e.deltaY : e.deltaX) * (e.deltaMode ? 40 : 1);
+      const now = Date.now();
+      if (Math.abs(sum) < 50 || now - at < 180) return;
+      viewerShow(viewer.i + Math.sign(sum));
+      sum = 0;
+      at = now;
+    },
+    { passive: false }
+  );
+  window.addEventListener('resize', () => viewer.open && viewerFit());
 }
 
 // ---------- outputs ----------
@@ -1014,6 +1186,7 @@ function init() {
     } else if (e.key === 'Home') goView(0);
     else if (e.key === 'End') goView(previewViews - 1);
   });
+  bindViewer();
   fitLayout();
   if (document.fonts) document.fonts.addEventListener?.('loadingdone', schedulePreview);
   schedulePreview();

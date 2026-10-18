@@ -690,7 +690,7 @@ input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; 
 /* ---------- Printing ---------- */
 @media print {
   html, body { background: #fff !important; }
-  .app, #toast { display: none !important; }
+  .app, #toast, #viewer { display: none !important; }
   #print-root { display: block !important; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .label-page { width: 90mm; height: 50mm; overflow: hidden; break-after: page; page-break-after: always; }
@@ -704,3 +704,44 @@ input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; 
 /* Four logos to a row in the design column, so the panel stays short. */
 html[data-cols="3"] .logos { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 html[data-cols="3"] .logo-opt { padding: 5px 6px; }
+
+/* ---------- Big preview ----------
+   Clicking a preview page opens it large in the middle of the window, over a blurred page.
+   Clicking outside it or pressing Esc closes it. */
+.preview .card-shot, .preview .sheet-shot { cursor: zoom-in; }
+.viewer {
+  position: fixed; inset: 0; z-index: 20; display: grid; place-items: center;
+  background: rgba(12, 16, 24, .42);
+  -webkit-backdrop-filter: blur(14px) saturate(1.1); backdrop-filter: blur(14px) saturate(1.1);
+  opacity: 0; transition: opacity .22s ease;
+}
+.viewer.on { opacity: 1; }
+.viewer-item {
+  background: #fff; border-radius: 6px; overflow: hidden; line-height: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .2), 0 30px 80px rgba(0, 0, 0, .35);
+  transform-origin: 0 0; will-change: transform;
+}
+.viewer-item.thermal { background: #fdfdfb; }
+.viewer-item > img, .viewer-item > svg { width: 100%; height: 100%; display: block; }
+.viewer-btn {
+  position: absolute; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid #ffffff33; background: rgba(20, 24, 32, .55); color: #fff; cursor: pointer;
+  transition: background-color .15s, opacity .15s;
+}
+.viewer-btn:hover { background: rgba(20, 24, 32, .8); }
+.viewer-btn:disabled { opacity: .3; cursor: default; }
+.viewer-btn svg { width: 22px; height: 22px; }
+.viewer-close { top: 18px; right: 18px; }
+.viewer-nav { top: 50%; margin-top: -22px; }
+.viewer-nav.prev { left: 18px; }
+.viewer-nav.next { right: 18px; }
+.viewer-count {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(20, 24, 32, .6); color: #fff; font-weight: 600; font-size: 13px;
+  padding: 5px 12px; border-radius: 99px; white-space: nowrap;
+}
+.viewer.single .viewer-nav, .viewer.single .viewer-count { display: none; }
+@media (max-width: 639px) {
+  .viewer-nav { top: auto; bottom: 10px; margin-top: 0; }
+  .viewer-count { bottom: 20px; }
+}

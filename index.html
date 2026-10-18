@@ -289,6 +289,19 @@
   </div>
 
   <div id="print-root" aria-hidden="true"></div>
+  <div id="viewer" class="viewer" hidden role="dialog" aria-modal="true" data-i18n-aria="preview" aria-label="Preview">
+    <div class="viewer-item" id="viewer-item"></div>
+    <button class="viewer-btn viewer-close" id="viewer-close" type="button" data-i18n-title="close" data-i18n-aria="close" title="Close" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+    </button>
+    <button class="viewer-btn viewer-nav prev" id="viewer-prev" type="button" data-i18n-title="prevPage" data-i18n-aria="prevPage" title="Previous page" aria-label="Previous page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <button class="viewer-btn viewer-nav next" id="viewer-next" type="button" data-i18n-title="nextPage" data-i18n-aria="nextPage" title="Next page" aria-label="Next page">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+    <div class="viewer-count" id="viewer-count"></div>
+  </div>
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script type="module" src="js/main.js"></script>
