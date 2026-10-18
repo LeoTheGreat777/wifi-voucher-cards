@@ -242,6 +242,45 @@ details summary { cursor: pointer; color: var(--link); font-weight: 600; font-si
 .paste textarea { margin: 10px 0 8px; }
 .row { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
 
+/* ---------- Code generator ---------- */
+.gen { margin-top: 12px; }
+.gen[open] > summary { margin-bottom: 12px; }
+.gen-sample {
+  display: flex; align-items: center; gap: 8px; border: 1px solid var(--line-2); border-radius: 12px;
+  background: var(--panel-2); padding: 8px 8px 8px 14px;
+}
+.gen-sample code { flex: 1; min-width: 0; font-family: var(--mono); font-size: 20px; font-weight: 700; letter-spacing: .04em; overflow-wrap: anywhere; color: var(--text); }
+.icon-btn { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel); color: var(--text); cursor: pointer; }
+.icon-btn:hover { border-color: var(--ring); }
+.icon-btn svg { width: 18px; height: 18px; }
+.icon-btn.spin svg { animation: spin .4s ease; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.meter { height: 6px; border-radius: 99px; background: var(--line); margin: 10px 0 4px; overflow: hidden; }
+.meter span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--danger); transition: width .2s, background .2s; }
+.meter[data-level=fair] span { background: #e0a100; }
+.meter[data-level=strong] span { background: var(--accent); }
+.meter-label { margin: 0 0 14px; font-size: 12px; color: var(--muted); }
+.range { display: grid; grid-template-columns: 1fr 72px; gap: 10px; align-items: center; }
+.range input[type=range] { padding: 0; border: 0; background: none; accent-color: var(--primary); }
+.modes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.modes button {
+  display: grid; gap: 1px; text-align: left; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--panel); padding: 7px 10px; cursor: pointer; color: var(--text);
+}
+.modes button strong { font-size: 13px; }
+.modes button small { font-size: 11.5px; color: var(--muted); }
+.modes button:hover { border-color: var(--line-2); }
+.modes button[aria-checked=true] { border-color: var(--ring); background: var(--selected); box-shadow: inset 0 0 0 1px var(--ring); }
+.chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.chip { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 7px 10px; cursor: pointer; font-size: 13px; font-weight: 500; }
+.chip code { margin-left: auto; color: var(--muted); font-size: 12px; }
+.chip.off { opacity: .45; cursor: not-allowed; }
+.gen-users-random .num-only { display: none; }
+.gen-go { margin-top: 14px; }
+.gen-go .hint { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.gen-note { margin: 10px 0 0; font-size: 12px; }
+
+
 .btn {
   display: inline-flex; align-items: center; gap: 8px; justify-content: center;
   border: 1px solid var(--line-2); background: var(--panel); border-radius: 10px;
@@ -392,6 +431,8 @@ input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; 
   .tabs { grid-template-columns: 1fr; }
   .add-one { grid-template-columns: 1fr 1fr; }
   .add-one .btn { grid-column: 1 / -1; }
+  .modes { grid-template-columns: 1fr; }
+  .gen-go { flex-direction: column; align-items: stretch; }
   .preview { grid-template-columns: 1fr; }
   .preview-wrap { padding: 12px; }
 }

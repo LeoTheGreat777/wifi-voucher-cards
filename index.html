@@ -60,6 +60,52 @@
               <button class="btn" id="add-paste" type="button" data-i18n="addAll">Add all</button>
             </div>
           </details>
+          <details class="gen" id="gen">
+            <summary data-i18n="genTitle">Generate random codes</summary>
+            <div class="gen-sample">
+              <code id="gen-sample" aria-live="polite"></code>
+              <button class="icon-btn" id="gen-refresh" type="button" data-i18n-title="genRefresh" title="New example">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4.5h-4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+            </div>
+            <div class="meter" id="gen-meter"><span></span></div>
+            <p class="meter-label" id="gen-strength"></p>
+
+            <div class="fields">
+              <div class="field wide"><span data-i18n="genLength">Password length</span>
+                <span class="range"><input type="range" id="gen-length-r" min="4" max="32" data-g="length"><input type="number" id="gen-length" min="4" max="32" data-g="length"></span>
+              </div>
+              <div class="field wide"><span data-i18n="genMode">Make it</span>
+                <div class="modes" id="gen-mode" role="radiogroup">
+                  <button type="button" role="radio" data-mode="say"><strong data-i18n="modeSay">Easy to say</strong><small data-i18n="modeSaySub">Letters only</small></button>
+                  <button type="button" role="radio" data-mode="read"><strong data-i18n="modeRead">Easy to read</strong><small data-i18n="modeReadSub">No 0/O, 1/l/I</small></button>
+                  <button type="button" role="radio" data-mode="all"><strong data-i18n="modeAll">All characters</strong><small data-i18n="modeAllSub">Any combination</small></button>
+                </div>
+              </div>
+              <div class="field wide"><span data-i18n="genChars">Use</span>
+                <div class="chips">
+                  <label class="chip"><input type="checkbox" data-g="upper"> <span data-i18n="chUpper">Uppercase</span> <code>ABC</code></label>
+                  <label class="chip"><input type="checkbox" data-g="lower"> <span data-i18n="chLower">Lowercase</span> <code>abc</code></label>
+                  <label class="chip"><input type="checkbox" data-g="digits"> <span data-i18n="chDigits">Numbers</span> <code>123</code></label>
+                  <label class="chip"><input type="checkbox" data-g="symbols"> <span data-i18n="chSymbols">Symbols</span> <code>#$&amp;</code></label>
+                </div>
+              </div>
+              <label class="field"><span data-i18n="genUsers">Usernames</span>
+                <select data-g="userMode">
+                  <option value="numbered" data-i18n="usersNumbered">Numbered</option>
+                  <option value="random" data-i18n="usersRandom">Random</option>
+                </select>
+              </label>
+              <label class="field"><span data-i18n="genCount">How many</span><input type="number" min="1" max="1000" data-g="count"></label>
+              <label class="field num-only"><span data-i18n="genPrefix">Start of username</span><input data-g="prefix" spellcheck="false" maxlength="20"></label>
+              <label class="field num-only"><span data-i18n="genStart">First number</span><input type="number" min="0" data-g="start"></label>
+            </div>
+            <div class="row gen-go">
+              <span class="hint" id="gen-example"></span>
+              <button class="btn primary" id="gen-add" type="button" data-i18n="genAdd">Generate and add</button>
+            </div>
+            <p class="hint gen-note" data-i18n="genNote">These codes only let guests in after the same usernames and passwords are added to your Wi-Fi system (for example as FortiGate guest users).</p>
+          </details>
         </div>
 
         <div class="panel">

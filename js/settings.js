@@ -1,5 +1,6 @@
 // Card design, printer settings and saved logos, kept in this browser only.
 import { CARD_TEXT, validityLine } from './i18n.js';
+import { GEN_DEFAULTS } from './generate.js';
 
 export const BUILTIN_LOGOS = [{ id: 'builtin', name: 'Hellenic Cables', data: 'assets/logo.png', builtin: true }];
 
@@ -23,6 +24,7 @@ const BASE = Object.freeze({
   offsetY: 0, // mm
   copies: 1,
   output: 'zebra', // 'zebra' | 'a4'
+  gen: GEN_DEFAULTS, // random code generator options
 });
 
 /** The card texts for a language, with the validity line filled in. */
@@ -58,6 +60,7 @@ export function loadSettings(detectedLang) {
   }
   if (s.logo === 'custom') s.logo = 'builtin';
   if (!String(s.ssid || '').trim()) s.ssid = BASE.ssid;
+  s.gen = { ...GEN_DEFAULTS, ...(saved.gen || {}) };
   // The validity line always follows the menu.
   s.subtitle = validityLine(s.lang, s.validity);
   return s;

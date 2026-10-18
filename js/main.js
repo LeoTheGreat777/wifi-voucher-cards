@@ -1,4 +1,5 @@
 import { parseVouchers, parseLines, parseBest } from './parse.js';
+import { makeCode, makeVouchers, strength } from './generate.js';
 import { cardSvg, sheetSvg, A4 } from './card.js';
 import { measure, loadFonts, rasterCard, bitmapToCanvas } from './raster.js';
 import { labelZpl, dotsPerMm } from './zpl.js';
@@ -236,6 +237,106 @@ async function importFiles(files) {
   schedulePreview();
 }
 
+// ---------- random code generator ----------
+
+const genOpts = () => settings.gen;
+
+/** Shows the generator options, a sample code, its strength and the next username. */
+function fillGenerator() {
+  const g = genOpts();
+  for (const el of $$('[data-g]')) {
+    const k = el.dataset.g;
+    if (el.type === 'checkbox') el.checked = !!g[k];
+    else el.value = g[k];
+  }
+  for (const b of $$('#gen-mode [data-mode]')) b.setAttribute('aria-checked', String(b.dataset.mode === g.mode));
+  // "Easy to say" uses letters only, so numbers and symbols are switched off.
+  for (const k of ['digits', 'symbols']) {
+    const cb = $(`[data-g="${k}"]`);
+    cb.disabled = g.mode === 'say';
+    if (g.mode === 'say') cb.checked = false;
+    cb.closest('.chip').classList.toggle('off', g.mode === 'say');
+  }
+  $('#gen').classList.toggle('gen-users-random', g.userMode === 'random');
+  newSample();
+}
+
+function newSample() {
+  const g = genOpts();
+  $('#gen-sample').textContent = makeCode(g);
+  const st = strength(g);
+  const meter = $('#gen-meter');
+  meter.dataset.level = st.level;
+  meter.firstElementChild.style.width = Math.min(100, Math.max(8, (st.bits / 90) * 100)) + '%';
+  $('#gen-strength').textContent = t({ weak: 'strWeak', fair: 'strFair', strong: 'strStrong' }[st.level]);
+  const [ex] = makeVouchers({ ...g, count: 1 }, new Set(vouchers.map((v) => v.user)));
+  $('#gen-example').textContent = t('genExample', { u: ex.user, p: ex.pass });
+}
+
+function bindGenerator() {
+  const save = () => {
+    saveSettings(settings);
+    fillGenerator();
+  };
+  for (const el of $$('[data-g]')) {
+    const k = el.dataset.g;
+    const ev = el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(ev, () => {
+      const g = { ...settings.gen };
+      if (el.type === 'checkbox') {
+        g[k] = el.checked;
+        // Keep at least one character type on.
+        const on = ['upper', 'lower', 'digits', 'symbols'].filter((c) => g[c] && !(g.mode === 'say' && (c === 'digits' || c === 'symbols')));
+        if (!on.length) {
+          el.checked = true;
+          return;
+        }
+      } else if (el.type === 'number' || el.type === 'range') {
+        if (el.value === '') return;
+        const n = Number(el.value);
+        if (k === 'length') g.length = Math.max(4, Math.min(32, n));
+        else if (k === 'count') g.count = Math.max(1, Math.min(1000, n));
+        else g[k] = Math.max(0, n);
+      } else g[k] = el.value;
+      settings.gen = g;
+      saveSettings(settings);
+      if (el.type === 'text' || k === 'prefix' || el.type === 'number') {
+        // Don't rewrite a box while someone is typing in it.
+        for (const other of $$(`[data-g="${k}"]`)) if (other !== el) other.value = g[k];
+        newSample();
+      } else fillGenerator();
+    });
+    if (el.type === 'number') el.addEventListener('blur', fillGenerator);
+  }
+  for (const b of $$('#gen-mode [data-mode]'))
+    b.addEventListener('click', () => {
+      const g = { ...settings.gen, mode: b.dataset.mode };
+      if (g.mode === 'say' && !g.upper && !g.lower) g.lower = true;
+      settings.gen = g;
+      save();
+    });
+  $('#gen-refresh').addEventListener('click', (e) => {
+    const btn = e.currentTarget;
+    btn.classList.remove('spin');
+    void btn.offsetWidth;
+    btn.classList.add('spin');
+    newSample();
+  });
+  $('#gen-add').addEventListener('click', () => {
+    const list = makeVouchers(settings.gen, new Set(vouchers.map((v) => v.user)));
+    const r = addVouchers(list);
+    // Numbered usernames carry on from where this batch stopped.
+    if (settings.gen.userMode === 'numbered') {
+      settings.gen = { ...settings.gen, start: (Number(settings.gen.start) || 0) + list.length };
+      saveSettings(settings);
+    }
+    fillGenerator();
+    toast(t('genAdded', { n: plural(r.added, 'voucher') }));
+    const box = $('#list');
+    box.scrollTop = box.scrollHeight;
+  });
+}
+
 // ---------- design form ----------
 
 function fillForm() {
@@ -315,7 +416,7 @@ function bindForm() {
   });
   $('#reset-design').addEventListener('click', () => {
     const keep = Object.fromEntries(
-      ['uiLang', 'theme', 'lang', 'validity', 'dpi', 'darkness', 'speed', 'offsetX', 'offsetY', 'copies', 'output'].map((k) => [k, settings[k]])
+      ['uiLang', 'theme', 'lang', 'validity', 'gen', 'dpi', 'darkness', 'speed', 'offsetX', 'offsetY', 'copies', 'output'].map((k) => [k, settings[k]])
     );
     settings = { ...defaults(settings.lang), ...keep, ...cardTextFor(settings.lang, settings.validity) };
     saveSettings(settings);
@@ -451,6 +552,7 @@ function translatePage() {
   renderLangs();
   renderThemes();
   $('#made-by').textContent = t('madeBy');
+  newSample();
 }
 
 function setOutput(out, save = true) {
@@ -638,6 +740,8 @@ function init() {
   translatePage();
   fillForm();
   bindForm();
+  fillGenerator();
+  bindGenerator();
   renderList();
 
   const drop = $('#drop');
