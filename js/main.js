@@ -450,7 +450,7 @@ function translatePage() {
   applyI18n(settings.uiLang);
   renderLangs();
   renderThemes();
-  $('#made-by').textContent = t('madeBy', { name: 'Leonidas' });
+  $('#made-by').textContent = t('madeBy');
 }
 
 function setOutput(out, save = true) {
