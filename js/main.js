@@ -601,8 +601,7 @@ async function renderPreview() {
         e.target._draw();
       }
     },
-    // On phones the preview grows with the page, so watch the window instead of the box.
-    { root: getComputedStyle(box).overflowY === 'auto' ? box : null, rootMargin: '600px 0px' }
+    { root: box, rootMargin: '600px 0px' }
   );
 
   if (settings.output === 'a4') {
@@ -763,6 +762,33 @@ window.addEventListener('afterprint', () => {
 
 // ---------- wiring ----------
 
+/** Keeps the print column inside the window on computers, so only the preview box scrolls. */
+function fitPrintColumn() {
+  const col = $('.col-right');
+  if (innerWidth <= 980) {
+    col.style.maxHeight = '';
+    return;
+  }
+  const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+  // getBoundingClientRect is in window pixels; the column's own sizes are in zoomed pixels.
+  const k = CSS_ZOOM_SCALES_RECTS ? 1 : z;
+  const top = Math.max(16 * z, col.getBoundingClientRect().top * k);
+  // Near the bottom of the page, stay above the footer instead of sliding under the top edge.
+  const bottom = Math.min(innerHeight - 16 * z, $('.layout').getBoundingClientRect().bottom * k - 8 * z);
+  col.style.maxHeight = Math.max(320, Math.floor((bottom - top) / z)) + 'px';
+}
+const CSS_ZOOM_SCALES_RECTS = (() => {
+  // Browsers differ on whether getBoundingClientRect includes CSS zoom; measure it once.
+  const z = parseFloat(getComputedStyle(document.documentElement).zoom) || 1;
+  if (z === 1) return true;
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:absolute;width:100px;height:1px;visibility:hidden';
+  document.body.appendChild(probe);
+  const w = probe.getBoundingClientRect().width;
+  probe.remove();
+  return Math.abs(w - 100 * z) < 1;
+})();
+
 function init() {
   applyTheme();
   translatePage();
@@ -854,6 +880,8 @@ function init() {
   $('#print-label').addEventListener('click', () => printCards('label'));
   $('#print-a4').addEventListener('click', () => printCards('a4'));
 
+  for (const ev of ['scroll', 'resize']) addEventListener(ev, fitPrintColumn, { passive: true });
+  fitPrintColumn();
   if (document.fonts) document.fonts.addEventListener?.('loadingdone', schedulePreview);
   schedulePreview();
 }
