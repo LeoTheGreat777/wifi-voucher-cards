@@ -9,24 +9,24 @@ export const LANGS = [
 /** Default card text for each language. */
 export const CARD_TEXT = {
   en: {
-    title: 'Guest Wi-Fi',
+    title: 'Guest_WiFi',
     footer: 'Connect to the guest network and sign in with the details above.',
     userLabel: 'User ID',
     passLabel: 'Password',
     codeLabel: 'CODE',
   },
   el: {
-    title: 'Wi-Fi Επισκεπτών',
+    title: 'Guest_WiFi',
     footer: 'Συνδεθείτε στο δίκτυο επισκεπτών και εισέλθετε με τα παραπάνω στοιχεία.',
-    userLabel: 'ID χρήστη',
-    passLabel: 'Κωδικός',
+    userLabel: 'User ID',
+    passLabel: 'Password',
     codeLabel: 'ΚΩΔΙΚΟΣ',
   },
   ro: {
-    title: 'Wi-Fi Vizitatori',
+    title: 'Guest_WiFi',
     footer: 'Conectați-vă la rețeaua pentru vizitatori și autentificați-vă cu datele de mai sus.',
-    userLabel: 'ID utilizator',
-    passLabel: 'Parolă',
+    userLabel: 'User ID',
+    passLabel: 'Password',
     codeLabel: 'COD',
   },
 };
