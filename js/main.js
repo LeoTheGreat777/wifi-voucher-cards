@@ -4,7 +4,7 @@ import { cardSvg, sheetSvg, A4 } from './card.js';
 import { measure, loadFonts, rasterCard, bitmapToCanvas } from './raster.js';
 import { labelZpl, dotsPerMm } from './zpl.js';
 import { makeQr, wifiPayload } from './qr.js';
-import { defaults, cardTextFor, loadSettings, saveSettings, loadVouchers, saveVouchers, listLogos, findLogo, addLogo, deleteLogo, setLogoPalette } from './settings.js';
+import { defaults, cardTextFor, loadSettings, saveSettings, loadVouchers, saveVouchers, listLogos, findLogo, addLogo, deleteLogo, setLogoPalette, updateLogo } from './settings.js';
 import { DEFAULT_PALETTE, paletteFromImage, themeCss, cardColours, faviconFor } from './palette.js';
 import { LANGS, detectLang, tr, applyI18n, count, formatDuration, durationParts, durationFrom } from './i18n.js';
 
@@ -79,7 +79,71 @@ async function currentLogo() {
   return { href, img, w: img.naturalWidth, h: img.naturalHeight };
 }
 
-/** Shrinks an uploaded logo to a sensible size and stores it as PNG. */
+/**
+ * Cuts away empty borders (see-through or plain white) around a logo, so a small logo
+ * in a big empty canvas still fills its space on the card. Returns a canvas.
+ */
+function trimLogo(img) {
+  const w = img.naturalWidth || img.width;
+  const h = img.naturalHeight || img.height;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0);
+  let d;
+  try {
+    d = ctx.getImageData(0, 0, w, h).data;
+  } catch {
+    return c;
+  }
+  // The background is see-through if any corner is; otherwise it is the corner's colour.
+  const corners = [0, (w - 1) * 4, (h - 1) * w * 4, (h * w - 1) * 4];
+  const clear = corners.some((i) => d[i + 3] < 16);
+  const bg = [d[0], d[1], d[2]];
+  const empty = clear
+    ? (i) => d[i + 3] < 16
+    : (i) => d[i + 3] < 16 || (Math.abs(d[i] - bg[0]) < 12 && Math.abs(d[i + 1] - bg[1]) < 12 && Math.abs(d[i + 2] - bg[2]) < 12);
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (empty((y * w + x) * 4)) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+    }
+  }
+  if (x1 < 0) return c; // nothing there; keep it as it is
+  const pad = Math.max(1, Math.round(Math.max(x1 - x0, y1 - y0) * 0.01));
+  x0 = Math.max(0, x0 - pad);
+  y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(w - 1, x1 + pad);
+  y1 = Math.min(h - 1, y1 + pad);
+  if (x0 === 0 && y0 === 0 && x1 === w - 1 && y1 === h - 1) return c;
+  const out = document.createElement('canvas');
+  out.width = x1 - x0 + 1;
+  out.height = y1 - y0 + 1;
+  out.getContext('2d').drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
+}
+
+/** Trims a logo and shrinks it to a sensible size, as a PNG data URL. */
+function logoData(img) {
+  const t = trimLogo(img);
+  // Big enough for a crisp print, small enough to keep several in the browser.
+  const k = Math.min(1, 800 / Math.max(t.width, t.height));
+  if (k === 1) return t.toDataURL('image/png');
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(t.width * k));
+  c.height = Math.max(1, Math.round(t.height * k));
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(t, 0, 0, c.width, c.height);
+  return c.toDataURL('image/png');
+}
+
+/** Reads an uploaded logo file: trimmed, shrunk and stored as PNG. */
 function readLogoFile(file) {
   return new Promise((resolve, reject) => {
     const fr = new FileReader();
@@ -87,21 +151,29 @@ function readLogoFile(file) {
     fr.onload = () => {
       const img = new Image();
       img.onerror = () => reject(new Error(t('imgFail')));
-      img.onload = () => {
-        const w0 = img.naturalWidth || 600;
-        const h0 = img.naturalHeight || 300;
-        // Big enough for a crisp print, small enough to keep several in the browser.
-        const k = Math.min(1, 800 / Math.max(w0, h0));
-        const c = document.createElement('canvas');
-        c.width = Math.round(w0 * k);
-        c.height = Math.round(h0 * k);
-        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-        resolve(c.toDataURL('image/png'));
-      };
+      img.onload = () => resolve(logoData(img));
       img.src = fr.result;
     };
     fr.readAsDataURL(file);
   });
+}
+
+/** Logos saved before trimming existed: trim them once (their colours stay the same). */
+async function trimSavedLogos() {
+  let changed = false;
+  for (const l of listLogos()) {
+    if (l.trimmed) continue;
+    const img = await loadImage(l.data);
+    const data = img && img.naturalWidth ? logoData(img) : l.data;
+    updateLogo(l.id, { data, trimmed: true });
+    if (data !== l.data) changed = true;
+  }
+  if (changed) {
+    logoCache.clear();
+    logoBitsCache.clear();
+    renderLogos();
+    schedulePreview();
+  }
 }
 
 function currentQr() {
@@ -1209,6 +1281,7 @@ function init() {
     else if (e.key === 'End') goView(previewViews - 1);
   });
   bindViewer();
+  trimSavedLogos();
   fitLayout();
   if (document.fonts) document.fonts.addEventListener?.('loadingdone', schedulePreview);
   schedulePreview();

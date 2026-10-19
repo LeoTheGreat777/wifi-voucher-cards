@@ -133,15 +133,20 @@ export function addLogo(name, data, palette) {
   const existing = saved.find((l) => l.data === data);
   if (existing) return existing.id;
   const id = 'logo-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  const logo = { id, name: String(name || 'Logo').slice(0, 60), data };
+  const logo = { id, name: String(name || 'Logo').slice(0, 60), data, trimmed: true };
   if (palette !== undefined) logo.palette = palette;
   saved.push(logo);
   return storeLogos(saved) ? id : null;
 }
 
+/** Changes some fields of a saved logo. */
+export function updateLogo(id, patch) {
+  storeLogos(listLogos().map((l) => (l.id === id ? { ...l, ...patch } : l)));
+}
+
 /** Remembers the colours found in a saved logo. */
 export function setLogoPalette(id, palette) {
-  storeLogos(listLogos().map((l) => (l.id === id ? { ...l, palette } : l)));
+  updateLogo(id, { palette });
 }
 
 export function deleteLogo(id) {
