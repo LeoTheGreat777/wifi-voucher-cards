@@ -689,6 +689,9 @@ input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; 
 
 /* ---------- Printing ---------- */
 @media print {
+  /* The screen zoom (bigger on 4K, smaller on short windows) must never reach the paper:
+     cards print at their real size, one sheet or label per page. */
+  html { zoom: 1 !important; }
   html, body { background: #fff !important; }
   .app, #toast, #viewer { display: none !important; }
   #print-root { display: block !important; }
