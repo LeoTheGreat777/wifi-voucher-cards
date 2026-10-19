@@ -547,6 +547,10 @@ input[type=checkbox] { accent-color: var(--primary); width: 16px; height: 16px; 
 .ask p { flex: 1 1 180px; margin: 0; font-weight: 600; font-size: 13px; }
 .ask-btns { display: flex; gap: 8px; margin-left: auto; }
 .field .ask { margin: 8px 0 0; }
+/* A question never resizes the page: it is left out when the page measures itself, and under
+   the logos it takes the place of the hint while it is open. */
+html[data-measure] .ask { display: none !important; }
+#ask-logo:not([hidden]) + .hint { display: none; }
 .btn.small { padding: 5px 11px; font-size: 13px; }
 .btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
 .btn.danger:hover { filter: brightness(1.08); border-color: var(--danger); }
