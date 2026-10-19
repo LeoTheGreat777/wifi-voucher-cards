@@ -78,6 +78,11 @@ export function loadSettings(detectedLang) {
     if (!v.d && v.h === 12 && !v.m) s.validity = { ...BASE.validity };
     s.v8h = true;
   }
+  // Uppercase letters (ABC) became part of the default codes; turn them on once.
+  if (!saved.genUp) {
+    s.gen.upper = true;
+    s.genUp = true;
+  }
   // The validity line always follows the menu.
   s.subtitle = validityLine(s.lang, s.validity);
   return s;

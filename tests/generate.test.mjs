@@ -30,7 +30,7 @@ test('numbered usernames skip ones already in the list and never repeat', () => 
   assert.deepEqual(list.map((v) => v.user), ['guest0001', 'guest0003', 'guest0004', 'guest0005', 'guest0006']);
   const rnd = makeVouchers({ ...GEN_DEFAULTS, count: 500, userMode: 'random' });
   assert.equal(new Set(rnd.map((v) => v.user)).size, 500);
-  for (const v of rnd) assert.match(v.pass, /^[a-z0-9]{8}$/);
+  for (const v of rnd) assert.match(v.pass, /^[A-Za-z0-9]{8}$/);
 });
 
 test('strength rating', () => {

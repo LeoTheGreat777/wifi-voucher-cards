@@ -15,7 +15,7 @@ export const GEN_DEFAULTS = Object.freeze({
   count: 30,
   length: 8,
   mode: 'read', // 'say' (letters only) | 'read' (no look-alikes) | 'all'
-  upper: false,
+  upper: true,
   lower: true,
   digits: true,
   symbols: false,
