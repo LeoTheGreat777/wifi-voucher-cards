@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WiFi Voucher Cards</title>
-  <meta name="description" content="Turn Wi-Fi vouchers (typed in or from a FortiGate PDF) into printable cards for Zebra label printers or A4 sheets. Runs entirely in your browser.">
+  <meta name="description" content="Turn guest Wi-Fi vouchers (from your firewall or hotspot PDF or CSV, typed in or generated) into printable cards for Zebra label printers or A4 sheets. Runs entirely in your browser.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23002e63'/%3E%3Cpath d='M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0' stroke='%237dba00' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='1.8' fill='%237dba00'/%3E%3C/svg%3E">
   <script>
     // Apply the saved theme (and the Corinth Pipeworks colours) before the page draws, so it never flashes.
@@ -77,7 +77,7 @@
               <input type="file" id="file" accept=".pdf,.csv,.txt,application/pdf,text/csv,text/plain" multiple hidden>
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4m0 0L7.5 8.5M12 4l4.5 4.5M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
               <strong data-i18n="dropTitle">Drop a voucher PDF here</strong>
-              <span data-i18n="dropSub">FortiGate PDF, CSV or text file, or click to choose</span>
+              <span data-i18n="dropSub">PDF from your Wi-Fi system, CSV or text file, or click to choose</span>
             </label>
           </div>
 
@@ -138,7 +138,7 @@
               <button class="btn primary" id="gen-add" type="button" data-i18n="genAdd">Generate and add</button>
             </div>
             <p class="hint gen-example" id="gen-example"></p>
-            <p class="hint gen-note" data-i18n="genNote">These codes only let guests in after the same usernames and passwords are added to your Wi-Fi system (for example as FortiGate guest users).</p>
+            <p class="hint gen-note" data-i18n="genNote">These codes only let guests in after the same usernames and passwords are added to your Wi-Fi system (for example as guest users on your firewall or hotspot controller).</p>
           </div>
           </div>
         </div>

@@ -9,7 +9,7 @@ Turn guest Wi-Fi vouchers into good-looking cards, ready to hand out.
   <img alt="WiFi Voucher Cards: add vouchers on the left, card design in the middle, print options and a live preview on the right" src="docs/screenshot-light.png">
 </picture>
 
-- **Add vouchers** from the PDF your firewall prints (FortiGate tested), a CSV or text file, by typing or pasting them, or by generating random codes.
+- **Add vouchers** from the PDF or CSV your Wi-Fi system gives you (FortiGate, UniFi, pfSense, OPNsense, MikroTik, Cisco, Omada and others), from any text file, by typing or pasting them, or by generating random codes.
 - **Print on a Zebra label printer** (ZD421, 203 dpi, 90 × 50 mm labels) with a ready-made ZPL file, or through the normal printer driver.
 - **Print on A4** for big batches: 10 cards per page with cut lines, or save as PDF.
 - **Everything stays in your browser.** PDFs are read on your computer and nothing is uploaded anywhere.
@@ -25,10 +25,10 @@ The page has three columns, one for each step.
 1. **Add vouchers.** Pick how at the top of the box:
    - *From a file*: drop the voucher PDF (or a CSV/text file) on the page, or click to choose it.
    - *Type or paste*: add one voucher at a time, or paste a whole list.
-   - *Generate*: make a batch of random codes, with options like a password generator (length, easy to say / easy to read / all characters, uppercase, lowercase, numbers and symbols, numbered or random usernames). The codes come from the browser's secure random numbers. Guests can only sign in once the same usernames and passwords are added to your Wi-Fi system (for example as FortiGate guest users).
+   - *Generate*: make a batch of random codes, with options like a password generator (length, easy to say / easy to read / all characters, uppercase, lowercase, numbers and symbols, numbered or random usernames). The codes come from the browser's secure random numbers. Guests can only sign in once the same usernames and passwords are added to your Wi-Fi system (for example as guest users on your firewall or hotspot controller).
 
    The vouchers list below always stays in view. Untick vouchers to leave them out of a print run, or remove them with ×. *Clear all* asks for confirmation inside the page.
-2. **Card design.** Set the card language, title (default *Guest_WiFi*), how long the vouchers last (a number with minutes / hours / days, 8 hours by default, or hide the line), the note at the bottom, labels, colours and logo. A FortiGate PDF fills in the duration for you when it says how long the vouchers last.
+2. **Card design.** Set the card language, title (default *Guest_WiFi*), how long the vouchers last (a number with minutes / hours / days, 8 hours by default, or hide the line), the note at the bottom, labels, colours and logo. An imported file fills in the duration for you when it says how long the vouchers last.
    - The Hellenic Cables and Corinth Pipeworks logos are built in, and each one brings its own card colours. You can add your own logos too: they are saved in your browser so you can switch between them, and you can delete them. With *No logo* the card shows a Wi-Fi sign next to the title.
    - You can add a QR code that joins the Wi-Fi network.
 3. **Print.** Pick the output:
@@ -53,12 +53,16 @@ If you print with the driver instead, set the paper size to 90 × 50 mm, scale 1
 
 ## Input formats
 
+The importer looks for usernames and passwords (or single voucher codes) in whatever you give it, so most systems work. These layouts are tested:
+
 | Source | Example |
 | --- | --- |
-| FortiGate voucher PDF | `User ID user0161` / `Password bexchzgf` / `Expiration 12 hour(s) and 0 minute(s)` |
-| Labeled text | `Username: alice Password: s3cret` |
-| CSV / one per line | `alice,s3cret` · `alice;s3cret` · `alice<TAB>s3cret` · `alice s3cret` |
+| Labeled PDF or text (FortiGate, MikroTik and similar) | `User ID user0161` / `Password bexchzgf` / `Expiration 12 hour(s) and 0 minute(s)` · `Login: mt0001 Password: k7Pq2x` |
+| CSV with a header row (OPNsense, Cisco, Omada and similar) | `username,password,…` · `User Name,Password,Lifetime` · `Code;Type;Duration` (other columns are ignored) |
+| UniFi voucher codes | `12345-67890`, with `Valid for 8 hours` picked up as the duration |
+| pfSense voucher roll | `# comment` lines and one `"code"` per line |
 | Code-only vouchers | `Voucher code: ABCD-1234`, or one code per line |
+| Plain list, one per line | `alice,s3cret` · `alice;s3cret` · `alice<TAB>s3cret` · `alice s3cret` |
 
 Scanned PDFs (pictures of text) can't be read; type those vouchers in instead.
 
@@ -70,7 +74,7 @@ The site is plain static files on GitHub Pages (this copy runs at voucher.kampax
 2. In the repo, open **Settings → Pages**, enter the domain under *Custom domain* and save. Once the DNS check passes, tick **Enforce HTTPS**.
 3. Optional but recommended: verify the domain under your GitHub account's **Settings → Pages**, so nobody else can claim it.
 
-If a FortiGate web filter blocks a new domain, submit it to FortiGuard for rating (https://www.fortiguard.com/webfilter, category *Information Technology*), or add a Web Rating Override on your own FortiGate for an immediate fix.
+If your firewall's web filter blocks a new domain, ask the filter's vendor to categorise it (for FortiGate: https://www.fortiguard.com/webfilter, category *Information Technology*), or add a local override on your own firewall for an immediate fix.
 
 ## Development
 

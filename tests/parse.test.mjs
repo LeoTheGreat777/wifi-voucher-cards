@@ -66,3 +66,24 @@ test('Greek and Romanian labels', () => {
   assert.deepEqual(pairs(parseVouchers('Όνομα χρήστη: guest01\nΚωδικός πρόσβασης: abc123\n')), ['guest01/abc123']);
   assert.deepEqual(pairs(parseVouchers('Utilizator guest02\nParolă xyz789\nExpirare 12 ore\n')), ['guest02/xyz789']);
 });
+
+test('UniFi codes, with the duration printed next to them', () => {
+  const r = parseVouchers('WiFi Voucher\n12345-67890\nValid for 8 hours\nWiFi Voucher\n23456-78901\nValid for 8 hours\n');
+  assert.deepEqual(pairs(r), ['12345-67890/', '23456-78901/']);
+  assert.deepEqual(r.validity, { d: 0, h: 8, m: 0 });
+});
+
+test('CSV with a header row: picks the right columns', () => {
+  const opn = parseVouchers('username,password,vouchergroup,expirytime,validity\n"jKq3sP","XyZ9ab","Lobby","0","28800"\n"mN4tRw","PqR7cd","Lobby","0","28800"\n');
+  assert.deepEqual(pairs(opn), ['jKq3sP/XyZ9ab', 'mN4tRw/PqR7cd']);
+  const cisco = parseVouchers('User Name,Password,Lifetime,WLAN SSID\nguest01,Ab3dEf,1 day,Guest\n');
+  assert.deepEqual(pairs(cisco), ['guest01/Ab3dEf']);
+  const codes = parseVouchers('Code;Type;Duration\n482913;Limited Usage;8 hours\n771045;Limited Usage;8 hours\n');
+  assert.deepEqual(pairs(codes), ['482913/', '771045/']);
+  assert.deepEqual(codes.validity, { d: 0, h: 8, m: 0 });
+});
+
+test('pfSense voucher roll: comments skipped, quotes removed', () => {
+  const r = parseVouchers('# Voucher Tickets 1..2 for Roll 1\n# Generated on Mon\n"7gQkYzR2Wa"\n"bP3sXhN8cD"\n');
+  assert.deepEqual(pairs(r), ['7gQkYzR2Wa/', 'bP3sXhN8cD/']);
+});

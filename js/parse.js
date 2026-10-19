@@ -31,10 +31,63 @@ export function parseLabeled(text) {
   return out;
 }
 
-/** Finds vouchers that only have a code ("Voucher code: ABCD-1234"). */
+/** Finds vouchers that only have a code ("Voucher code: ABCD-1234", or UniFi's "12345-67890"). */
 export function parseCodesOnly(text) {
   const re = /(?<![\p{L}\p{N}])(?:voucher(?:\s*code)?|access\s*code|code)(?![\p{L}\p{N}])\s*[:=#]?\s*([A-Za-z0-9][A-Za-z0-9-]{3,})/giu;
-  return [...text.matchAll(re)].map((m) => ({ user: m[1], pass: '' }));
+  const labeled = [...text.matchAll(re)].map((m) => m[1]).filter((c) => /\d/.test(c));
+  // UniFi voucher codes are ten digits shown as two groups of five.
+  const unifi = labeled.length ? [] : [...text.matchAll(/(?<![\p{L}\p{N}-])(\d{5}-\d{5})(?![\p{L}\p{N}-])/gu)].map((m) => m[1]);
+  return [...labeled, ...unifi].map((user) => ({ user, pass: '' }));
+}
+
+/** Splits one CSV line, honouring "quoted, cells". */
+function splitCsv(line, sep) {
+  const cells = [];
+  let cur = '';
+  let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (q && line[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else q = !q;
+    } else if (ch === sep && !q) {
+      cells.push(cur.trim());
+      cur = '';
+    } else cur += ch;
+  }
+  cells.push(cur.trim());
+  return cells;
+}
+
+const HEAD_USER = new RegExp(`^(?:${USER_LABEL}|voucher(?:\\s*code)?|access\\s*code|code|ticket)$`, 'iu');
+const HEAD_PASS = new RegExp(`^${PASS_LABEL}$`, 'iu');
+const HEAD_EXPIRY = new RegExp(`^${EXPIRY_LABEL}$`, 'iu');
+
+/**
+ * A table with a header row (CSV exports from OPNsense, Cisco, Omada and many others):
+ * finds the user/code, password and duration columns by name and ignores the rest.
+ */
+export function parseTable(text) {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  if (lines.length < 2) return [];
+  const sep = [',', ';', '\t'].find((c) => lines[0].includes(c));
+  if (!sep) return [];
+  const head = splitCsv(lines[0], sep).map((h) => h.replace(/[_-]+/g, ' ').trim());
+  const u = head.findIndex((h) => HEAD_USER.test(h));
+  if (u < 0) return [];
+  const p = head.findIndex((h) => HEAD_PASS.test(h));
+  const e = head.findIndex((h) => HEAD_EXPIRY.test(h));
+  const out = [];
+  for (const line of lines.slice(1)) {
+    const c = splitCsv(line, sep);
+    if (!c[u]) continue;
+    const v = { user: c[u], pass: p >= 0 ? c[p] || '' : '' };
+    if (e >= 0 && c[e]) v.expiry = c[e];
+    out.push(v);
+  }
+  return out;
 }
 
 /**
@@ -69,16 +122,21 @@ export function dedupe(list) {
 }
 
 /**
- * Best-effort parse of any text. Labeled formats (FortiGate, our own A4 sheet)
- * win; otherwise one voucher per line.
+ * Best-effort parse of any text. Labeled formats (FortiGate, MikroTik, our own A4 sheet)
+ * win, then tables with a header row, then bare codes (UniFi), then one voucher per line.
  * @returns {{vouchers: Voucher[], format: string, validity: string}}
  */
 export function parseVouchers(text) {
   const clean = text.replace(/ /g, ' ');
   let vouchers = parseLabeled(clean);
   let format = 'labeled';
+  const noComments = clean.replace(/^\s*#.*$/gm, '');
   if (!vouchers.length) {
-    vouchers = parseCodesOnly(clean);
+    vouchers = parseTable(clean);
+    format = 'table';
+  }
+  if (!vouchers.length) {
+    vouchers = parseCodesOnly(noComments);
     format = 'codes';
   }
   if (!vouchers.length) {
@@ -86,7 +144,13 @@ export function parseVouchers(text) {
     format = 'lines';
   }
   vouchers = dedupe(vouchers);
-  return { vouchers, format, validity: commonValidity(vouchers) };
+  let validity = commonValidity(vouchers);
+  // Code-only printouts (UniFi) say how long the codes last next to each code.
+  if (!validity && format === 'codes') {
+    const re = new RegExp(`${B}${EXPIRY_LABEL}${SEP}([^\\n]*)`, 'giu');
+    validity = commonValidity([...clean.matchAll(re)].map((m) => ({ expiry: m[1] })));
+  }
+  return { vouchers, format, validity };
 }
 
 /**
@@ -109,7 +173,7 @@ export function parseDuration(s) {
 /** Parses several versions of the same document's text and keeps the best. */
 export function parseBest(texts) {
   // Labeled matches are trusted more than bare codes, and those more than plain lines.
-  const rank = { labeled: 3, codes: 2, lines: 1 };
+  const rank = { labeled: 4, table: 3, codes: 2, lines: 1 };
   const score = (r) => (r.vouchers.length ? rank[r.format] * 1e6 + r.vouchers.length : 0);
   let best = null;
   for (const t of texts) {
