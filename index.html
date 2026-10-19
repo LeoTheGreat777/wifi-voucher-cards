@@ -5,14 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WiFi Voucher Cards</title>
   <meta name="description" content="Turn guest Wi-Fi vouchers (from your firewall or hotspot PDF or CSV, typed in or generated) into printable cards for Zebra label printers or A4 sheets. Runs entirely in your browser.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23002e63'/%3E%3Cpath d='M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0' stroke='%237dba00' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='1.8' fill='%237dba00'/%3E%3C/svg%3E">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231f3a68'/%3E%3Cpath d='M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0' stroke='%2312a594' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='1.8' fill='%2312a594'/%3E%3C/svg%3E">
   <script>
-    // Apply the saved theme (and the Corinth Pipeworks colours) before the page draws, so it never flashes.
+    // Apply the saved theme and the logo's colours before the page draws, so they never flash.
     try {
       var saved = JSON.parse(localStorage.getItem('wifi-voucher-cards.settings.v1') || '{}') || {};
       var t = saved.theme;
       if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
-      if (saved.logo === 'builtin-cpw') document.documentElement.dataset.brand = 'cpw';
+      var brand = JSON.parse(localStorage.getItem('wifi-voucher-cards.brand.v1') || 'null');
+      if (brand && brand.css) {
+        var st = document.createElement('style');
+        st.id = 'brand-style';
+        st.textContent = brand.css;
+        document.head.appendChild(st);
+        if (brand.icon) document.querySelector('link[rel=icon]').href = brand.icon;
+      }
     } catch (e) {}
 
     // Page size. On computers everything fits in the window: a little bigger on 1440p and 4K

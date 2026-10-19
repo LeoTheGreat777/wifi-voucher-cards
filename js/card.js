@@ -138,9 +138,9 @@ export function layoutCard(v, s, o = {}) {
  */
 export function cardSvg(v, s, o = {}) {
   const mono = o.mode === 'mono';
-  const ink = mono ? '#000' : s.ink || '#002e63';
+  const ink = mono ? '#000' : s.ink || '#1f3a68';
   const muted = mono ? '#000' : MUTED;
-  const accent = mono ? '#000' : s.accent || '#7dba00';
+  const accent = mono ? '#000' : s.accent || '#12a594';
   const L = layoutCard(v, s, { measure: o.measure, logo: o.logo, qr: !!o.qr });
   const parts = [];
   const w = o.width ?? `${CARD_W}mm`;

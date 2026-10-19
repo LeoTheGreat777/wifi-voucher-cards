@@ -2,19 +2,18 @@
 import { CARD_TEXT, validityLine } from './i18n.js';
 import { GEN_DEFAULTS } from './generate.js';
 
-export const BUILTIN_LOGOS = [
-  { id: 'builtin', name: 'Hellenic Cables', data: 'assets/logo.png', builtin: true },
-  { id: 'builtin-cpw', name: 'Corinth Pipeworks', data: 'assets/logo-corinth-pipeworks.png', builtin: true },
-];
+import { DEFAULT_PALETTE, cardColours } from './palette.js';
+
+const CARD_COLOURS = cardColours(DEFAULT_PALETTE);
 
 const BASE = Object.freeze({
   uiLang: 'en',
   theme: 'auto', // 'auto' (follow the system) | 'light' | 'dark'
   lang: 'en', // card language
   validity: { d: 0, h: 8, m: 0 },
-  accent: '#7dba00',
-  ink: '#002e63',
-  logo: 'builtin', // 'none', 'builtin' or the id of a saved logo
+  accent: CARD_COLOURS.accent, // the card colours follow the logo's colours
+  ink: CARD_COLOURS.ink,
+  logo: 'none', // 'none' or the id of a saved logo
   logoStyle: 'dither', // 'dither' | 'threshold'
   qr: false,
   ssid: 'Guest_WiFi',
@@ -59,10 +58,16 @@ export function loadSettings(detectedLang) {
   // Older versions kept a single uploaded logo in the settings.
   if (s.customLogo) {
     const id = addLogo('My logo', s.customLogo);
-    if (s.logo === 'custom') s.logo = id || 'builtin';
+    if (s.logo === 'custom') s.logo = id || 'none';
     delete s.customLogo;
   }
-  if (s.logo === 'custom') s.logo = 'builtin';
+  // The built-in company logos were removed; their card colours go with them.
+  if (s.logo === 'custom' || s.logo === 'builtin' || s.logo === 'builtin-cpw') s.logo = 'none';
+  const OLD_COLOURS = { '#7dba00/#002e63': 1, '#58595b/#710030': 1 };
+  if (OLD_COLOURS[`${String(s.accent).toLowerCase()}/${String(s.ink).toLowerCase()}`] && s.logo === 'none') {
+    s.accent = BASE.accent;
+    s.ink = BASE.ink;
+  }
   if (!String(s.ssid || '').trim()) s.ssid = BASE.ssid;
   s.gen = { ...GEN_DEFAULTS, ...(saved.gen || {}) };
   // Earlier versions used capitalised labels; move untouched ones to the new defaults.
@@ -103,32 +108,42 @@ export function saveVouchers(list) {
 
 // ---------- saved logos ----------
 
-/** @returns {Array<{id: string, name: string, data: string, builtin?: boolean}>} */
+/** @returns {Array<{id: string, name: string, data: string, palette?: object|null}>} */
 export function listLogos() {
   const saved = safe(() => JSON.parse(localStorage.getItem(LOGOS_KEY) || '[]'), []);
-  return [...BUILTIN_LOGOS, ...saved];
+  return Array.isArray(saved) ? saved : [];
 }
 
 export function findLogo(id) {
   return listLogos().find((l) => l.id === id) || null;
 }
 
-/** Saves a logo and returns its id, or null when the browser has no room left. */
-export function addLogo(name, data) {
-  const saved = listLogos().filter((l) => !l.builtin);
-  const existing = saved.find((l) => l.data === data);
-  if (existing) return existing.id;
-  const id = 'logo-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-  saved.push({ id, name: String(name || 'Logo').slice(0, 60), data });
+function storeLogos(list) {
   try {
-    localStorage.setItem(LOGOS_KEY, JSON.stringify(saved));
-    return id;
+    localStorage.setItem(LOGOS_KEY, JSON.stringify(list));
+    return true;
   } catch {
-    return null;
+    return false;
   }
 }
 
+/** Saves a logo (with its colours) and returns its id, or null when the browser has no room left. */
+export function addLogo(name, data, palette) {
+  const saved = listLogos();
+  const existing = saved.find((l) => l.data === data);
+  if (existing) return existing.id;
+  const id = 'logo-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const logo = { id, name: String(name || 'Logo').slice(0, 60), data };
+  if (palette !== undefined) logo.palette = palette;
+  saved.push(logo);
+  return storeLogos(saved) ? id : null;
+}
+
+/** Remembers the colours found in a saved logo. */
+export function setLogoPalette(id, palette) {
+  storeLogos(listLogos().map((l) => (l.id === id ? { ...l, palette } : l)));
+}
+
 export function deleteLogo(id) {
-  const saved = listLogos().filter((l) => !l.builtin && l.id !== id);
-  safe(() => localStorage.setItem(LOGOS_KEY, JSON.stringify(saved)));
+  storeLogos(listLogos().filter((l) => l.id !== id));
 }

@@ -4,7 +4,8 @@ import { cardSvg, sheetSvg, A4 } from './card.js';
 import { measure, loadFonts, rasterCard, bitmapToCanvas } from './raster.js';
 import { labelZpl, dotsPerMm } from './zpl.js';
 import { makeQr, wifiPayload } from './qr.js';
-import { defaults, cardTextFor, loadSettings, saveSettings, loadVouchers, saveVouchers, listLogos, findLogo, addLogo, deleteLogo } from './settings.js';
+import { defaults, cardTextFor, loadSettings, saveSettings, loadVouchers, saveVouchers, listLogos, findLogo, addLogo, deleteLogo, setLogoPalette } from './settings.js';
+import { DEFAULT_PALETTE, paletteFromImage, themeCss, cardColours, faviconFor } from './palette.js';
 import { LANGS, detectLang, tr, applyI18n, count, formatDuration, durationParts, durationFrom } from './i18n.js';
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -390,7 +391,9 @@ function bindForm() {
     e.target.value = '';
     if (!f) return;
     try {
-      const id = addLogo(f.name.replace(/\.[a-z0-9]+$/i, ''), await readLogoFile(f));
+      const data = await readLogoFile(f);
+      const img = await loadImage(data);
+      const id = addLogo(f.name.replace(/\.[a-z0-9]+$/i, ''), data, img ? paletteFromImage(img) : null);
       if (!id) {
         toast(t('logoFull'), true);
         return;
@@ -435,34 +438,55 @@ function bindForm() {
 
 // ---------- logos ----------
 
-// Each built-in logo brings its own card colours (accent, text).
-const BRAND_COLOURS = { builtin: ['#7dba00', '#002e63'], 'builtin-cpw': ['#58595b', '#710030'] };
+/** The colours of a logo (worked out once and saved with it), or null for none. */
+async function logoPalette(id) {
+  const l = id === 'none' ? null : findLogo(id);
+  if (!l) return null;
+  if (l.palette !== undefined) return l.palette;
+  const img = await loadImage(l.data);
+  const pal = img ? paletteFromImage(img) : null;
+  setLogoPalette(id, pal);
+  return pal;
+}
 
-function setLogo(id) {
+/** Picking a logo also gives the site and the card that logo's colours. */
+async function setLogo(id) {
   settings.logo = id;
-  if (BRAND_COLOURS[id]) [settings.accent, settings.ink] = BRAND_COLOURS[id];
+  const pal = await logoPalette(id);
+  if (settings.logo !== id) return;
+  const cc = cardColours(pal || DEFAULT_PALETTE);
+  settings.accent = cc.accent;
+  settings.ink = cc.ink;
   saveSettings(settings);
-  if (BRAND_COLOURS[id]) fillForm(); // shows the new colours (and redraws the logos)
-  else renderLogos();
+  fillForm(); // shows the new colours and redraws the logos (which applies the theme)
   schedulePreview();
 }
 
-// Easter egg: the Corinth Pipeworks logo turns the whole site maroon (see css/app.css).
-const FAVICON_CPW = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23710030'/%3E%3Cpath d='M7 13.5a13 13 0 0 1 18 0M10.5 17a8 8 0 0 1 11 0M14 20.5a3 3 0 0 1 4 0' stroke='%23d9d9db' stroke-width='2.4' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='24' r='1.8' fill='%23d9d9db'/%3E%3C/svg%3E";
-let faviconDefault = null;
-function applyBrand() {
-  const cpw = settings.logo === 'builtin-cpw';
-  const root = document.documentElement;
-  if (cpw) root.dataset.brand = 'cpw';
-  else delete root.dataset.brand;
-  const icon = document.querySelector('link[rel=icon]');
-  if (icon) {
-    faviconDefault ??= icon.getAttribute('href');
-    icon.setAttribute('href', cpw ? FAVICON_CPW : faviconDefault);
+const BRAND_KEY = 'wifi-voucher-cards.brand.v1';
+let brandToken = 0;
+/** Puts the selected logo's colours on the whole site (header, buttons, highlights, tab icon). */
+async function applyBrand() {
+  const token = ++brandToken;
+  const pal = await logoPalette(settings.logo);
+  if (token !== brandToken) return;
+  let style = document.getElementById('brand-style');
+  if (!style) {
+    style = document.createElement('style');
+    style.id = 'brand-style';
+    document.head.appendChild(style);
   }
+  const css = pal ? themeCss(pal) : '';
+  if (style.textContent !== css) style.textContent = css;
+  const icon = faviconFor(pal);
+  const link = document.querySelector('link[rel=icon]');
+  if (link && link.getAttribute('href') !== icon) link.setAttribute('href', icon);
+  try {
+    if (css) localStorage.setItem(BRAND_KEY, JSON.stringify({ css, icon }));
+    else localStorage.removeItem(BRAND_KEY);
+  } catch {}
 }
 
-/** The logo picker: no logo, the built-in one, saved ones (deletable) and an add button. */
+/** The logo picker: no logo, saved ones (deletable) and an add button. */
 function renderLogos() {
   applyBrand();
   const box = $('#logos');
@@ -487,7 +511,7 @@ function renderLogos() {
     img.src = l.data;
     img.alt = l.name;
     b.appendChild(img);
-    if (!l.builtin) {
+    {
       const del = document.createElement('span');
       del.className = 'logo-del';
       del.textContent = '×';
@@ -497,10 +521,8 @@ function renderLogos() {
         e.stopPropagation();
         if (!(await ask($('#ask-logo'), t('confirmDeleteLogo', { name: l.name }), t('yesDelete')))) return;
         deleteLogo(l.id);
-        if (settings.logo === l.id) settings.logo = 'builtin';
-        saveSettings(settings);
-        renderLogos();
-        schedulePreview();
+        if (settings.logo === l.id) await setLogo('none');
+        else renderLogos();
         toast(t('logoDeleted'));
       });
       b.appendChild(del);

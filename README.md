@@ -29,7 +29,7 @@ The page has three columns, one for each step.
 
    The vouchers list below always stays in view. Untick vouchers to leave them out of a print run, or remove them with ×. *Clear all* asks for confirmation inside the page.
 2. **Card design.** Set the card language, title (default *Guest_WiFi*), how long the vouchers last (a number with minutes / hours / days, 8 hours by default, or hide the line), the note at the bottom, labels, colours and logo. An imported file fills in the duration for you when it says how long the vouchers last.
-   - The Hellenic Cables and Corinth Pipeworks logos are built in, and each one brings its own card colours. You can add your own logos too: they are saved in your browser so you can switch between them, and you can delete them. With *No logo* the card shows a Wi-Fi sign next to the title.
+   - Add your company's logo and the whole app takes on its colours: the header, buttons and highlights, in light and dark mode, and the card's text and accent colours too. The colours are picked from the logo itself (white, black and see-through parts are ignored). Logos are saved in your browser so you can switch between them, and you can delete them. With *No logo* the app uses its own navy and teal, and the card shows a Wi-Fi sign next to the title.
    - You can add a QR code that joins the Wi-Fi network.
 3. **Print.** Pick the output:
    - **Zebra label**: *Download ZPL* and send it to the printer (see below), *Copy ZPL*, or *Print with driver*.
@@ -90,6 +90,7 @@ npm test                      # parser, generator, translation and ZPL tests (No
 | `js/parse.js` | Finds vouchers in text |
 | `js/generate.js` | Random voucher codes |
 | `js/qr.js` | The Wi-Fi QR code |
+| `js/palette.js` | Picks a logo's colours and builds the light and dark theme from them |
 | `js/pdf-import.js` | Reads text from PDFs with pdf.js |
 | `js/card.js` | The card layout (SVG, in millimetres) and the A4 sheet |
 | `js/raster.js` | Draws a card as 1-bit dots for the Zebra |
@@ -105,4 +106,3 @@ Made by Leonidas Kampaxis.
 - [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0), in `vendor/pdfjs`
 - [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator) by Kazuhiko Arase (MIT), in `vendor/qrcode.mjs`
 - [Inter](https://rsms.me/inter/) and [JetBrains Mono](https://www.jetbrains.com/lp/mono/) fonts (SIL Open Font License), in `vendor/fonts`
-- The Hellenic Cables and Corinth Pipeworks logos in `assets/` belong to those companies and are not covered by the MIT licence.

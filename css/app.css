@@ -25,73 +25,73 @@
 @font-face { font-family: 'JetBrains Mono'; font-weight: 800; font-display: swap; src: url(../vendor/fonts/jetbrains-mono-greek-800-normal.woff2) format('woff2'); unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF; }
 
 /* Colours are registered so a theme or logo switch fades smoothly instead of jumping. */
-@property --tb1 { syntax: '<color>'; inherits: true; initial-value: #00244f; }
-@property --tb2 { syntax: '<color>'; inherits: true; initial-value: #002e63; }
-@property --tb3 { syntax: '<color>'; inherits: true; initial-value: #0a4383; }
-@property --brand { syntax: '<color>'; inherits: true; initial-value: #002e63; }
-@property --primary { syntax: '<color>'; inherits: true; initial-value: #002e63; }
-@property --primary-hover { syntax: '<color>'; inherits: true; initial-value: #0b4a8f; }
-@property --accent { syntax: '<color>'; inherits: true; initial-value: #7dba00; }
-@property --accent-soft { syntax: '<color>'; inherits: true; initial-value: #eef7dc; }
-@property --accent-ink { syntax: '<color>'; inherits: true; initial-value: #3d6200; }
-@property --bg { syntax: '<color>'; inherits: true; initial-value: #f2f4f8; }
+@property --tb1 { syntax: '<color>'; inherits: true; initial-value: #172c4e; }
+@property --tb2 { syntax: '<color>'; inherits: true; initial-value: #1f3a68; }
+@property --tb3 { syntax: '<color>'; inherits: true; initial-value: #3a527a; }
+@property --brand { syntax: '<color>'; inherits: true; initial-value: #1f3a68; }
+@property --primary { syntax: '<color>'; inherits: true; initial-value: #1f3a68; }
+@property --primary-hover { syntax: '<color>'; inherits: true; initial-value: #41587f; }
+@property --accent { syntax: '<color>'; inherits: true; initial-value: #12a594; }
+@property --accent-soft { syntax: '<color>'; inherits: true; initial-value: #e7f6f4; }
+@property --accent-ink { syntax: '<color>'; inherits: true; initial-value: #0d7c6f; }
+@property --bg { syntax: '<color>'; inherits: true; initial-value: #f3f4f6; }
 @property --panel { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
-@property --panel-2 { syntax: '<color>'; inherits: true; initial-value: #f8fafc; }
+@property --panel-2 { syntax: '<color>'; inherits: true; initial-value: #f9fafb; }
 @property --field { syntax: '<color>'; inherits: true; initial-value: #ffffff; }
-@property --line { syntax: '<color>'; inherits: true; initial-value: #e3e8ef; }
-@property --line-2 { syntax: '<color>'; inherits: true; initial-value: #cfd7e2; }
-@property --row-line { syntax: '<color>'; inherits: true; initial-value: #eff2f6; }
-@property --text { syntax: '<color>'; inherits: true; initial-value: #16202c; }
-@property --muted { syntax: '<color>'; inherits: true; initial-value: #627083; }
-@property --faint { syntax: '<color>'; inherits: true; initial-value: #9aa5b3; }
-@property --link { syntax: '<color>'; inherits: true; initial-value: #0b3f7d; }
-@property --selected { syntax: '<color>'; inherits: true; initial-value: #eef4fb; }
-@property --ring { syntax: '<color>'; inherits: true; initial-value: #002e63; }
-@property --desk { syntax: '<color>'; inherits: true; initial-value: #e9edf3; }
-@property --top-muted { syntax: '<color>'; inherits: true; initial-value: #c4d3e6; }
-@property --mark { syntax: '<color>'; inherits: true; initial-value: #8fd11a; }
-@property --toast { syntax: '<color>'; inherits: true; initial-value: #1b2633; }
+@property --line { syntax: '<color>'; inherits: true; initial-value: #e7e9ec; }
+@property --line-2 { syntax: '<color>'; inherits: true; initial-value: #d5d8dc; }
+@property --row-line { syntax: '<color>'; inherits: true; initial-value: #f1f2f4; }
+@property --text { syntax: '<color>'; inherits: true; initial-value: #1d2025; }
+@property --muted { syntax: '<color>'; inherits: true; initial-value: #6d7179; }
+@property --faint { syntax: '<color>'; inherits: true; initial-value: #a1a5aa; }
+@property --link { syntax: '<color>'; inherits: true; initial-value: #1f3a68; }
+@property --selected { syntax: '<color>'; inherits: true; initial-value: #f3f4f7; }
+@property --ring { syntax: '<color>'; inherits: true; initial-value: #1f3a68; }
+@property --desk { syntax: '<color>'; inherits: true; initial-value: #edeef0; }
+@property --top-muted { syntax: '<color>'; inherits: true; initial-value: #ced4de; }
+@property --mark { syntax: '<color>'; inherits: true; initial-value: #12a594; }
+@property --toast { syntax: '<color>'; inherits: true; initial-value: #24282d; }
 html { transition: --tb1 .45s, --tb2 .45s, --tb3 .45s, --brand .45s, --primary .45s, --primary-hover .45s, --accent .45s, --accent-soft .45s, --accent-ink .45s, --bg .45s, --panel .45s, --panel-2 .45s, --field .45s, --line .45s, --line-2 .45s, --row-line .45s, --text .45s, --muted .45s, --faint .45s, --link .45s, --selected .45s, --ring .45s, --desk .45s, --top-muted .45s, --mark .45s, --toast .45s; }
 
 /* ---------- Theme tokens ---------- */
 :root {
-  --brand: #002e63;
-  --brand-2: #0b3f7d;
-  --accent: #7dba00;
-  --accent-soft: #eef7dc;
-  --accent-ink: #3d6200;
-  --bg: #f2f4f8;
+  --brand: #1f3a68;
+  --brand-2: #41587f;
+  --accent: #12a594;
+  --accent-soft: #e7f6f4;
+  --accent-ink: #0d7c6f;
+  --bg: #f3f4f6;
   --panel: #ffffff;
-  --panel-2: #f8fafc;
+  --panel-2: #f9fafb;
   --field: #ffffff;
-  --line: #e3e8ef;
-  --line-2: #cfd7e2;
-  --row-line: #eff2f6;
-  --text: #16202c;
-  --muted: #627083;
-  --faint: #9aa5b3;
-  --link: #0b3f7d;
-  --primary: #002e63;
-  --primary-hover: #0b4a8f;
+  --line: #e7e9ec;
+  --line-2: #d5d8dc;
+  --row-line: #f1f2f4;
+  --text: #1d2025;
+  --muted: #6d7179;
+  --faint: #a1a5aa;
+  --link: #1f3a68;
+  --primary: #1f3a68;
+  --primary-hover: #41587f;
   --on-primary: #ffffff;
-  --selected: #eef4fb;
-  --ring: #002e63;
-  --focus: #7dba0066;
+  --selected: #f3f4f7;
+  --ring: #1f3a68;
+  --focus: #12a59466;
   --danger: #c2372f;
   --danger-soft: #fbeeed;
   --badge: #fff4d6;
   --badge-text: #7a5600;
-  --help-text: #334155;
-  --toast: #1b2633;
-  --tb1: #00244f;
-  --tb2: #002e63;
-  --tb3: #0a4383;
-  --desk: #e9edf3;
-  --top-muted: #c4d3e6;
-  --top-ink: #002e63;
-  --mark: #8fd11a;
+  --help-text: #353940;
+  --toast: #24282d;
+  --tb1: #172c4e;
+  --tb2: #1f3a68;
+  --tb3: #3a527a;
+  --desk: #edeef0;
+  --top-muted: #ced4de;
+  --top-ink: #1f3a68;
+  --mark: #12a594;
   --strong: #7dba00;
-  --primary-shadow: rgba(0, 46, 99, .18);
+  --primary-shadow: rgba(31, 58, 104, 0.2);
   --shadow: 0 1px 2px rgba(16, 32, 56, .04), 0 6px 20px rgba(16, 32, 56, .05);
   --card-shadow: 0 1px 2px rgba(0, 0, 0, .08), 0 8px 22px rgba(16, 32, 56, .12);
   --radius: 16px;
@@ -100,187 +100,89 @@ html { transition: --tb1 .45s, --tb2 .45s, --tb3 .45s, --brand .45s, --primary .
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --brand: #8fb8ec;
-    --brand-2: #a9c9f2;
-    --accent: #8fd11a;
-    --accent-soft: #1d2b10;
-    --accent-ink: #b8e66e;
-    --bg: #0b111b;
-    --panel: #131b28;
-    --panel-2: #0f1622;
-    --field: #0e1521;
-    --line: #222d3e;
-    --line-2: #2e3b50;
-    --row-line: #1a2433;
-    --text: #e5ebf3;
-    --muted: #93a1b5;
-    --faint: #5f6d82;
-    --link: #93bdf0;
-    --primary: #2a66ad;
-    --primary-hover: #3577c4;
+    --brand: #a1b9e3;
+    --brand-2: #b8cbea;
+    --accent: #30e8d3;
+    --accent-soft: #1e3e3f;
+    --accent-ink: #a0eee5;
+    --bg: #101216;
+    --panel: #1b1e23;
+    --panel-2: #16191d;
+    --field: #15171c;
+    --line: #2b2f36;
+    --line-2: #393e46;
+    --row-line: #22252b;
+    --text: #ebedf0;
+    --muted: #9ea2a8;
+    --faint: #6b6f76;
+    --link: #a1b9e3;
+    --primary: #315ca5;
+    --primary-hover: #466cae;
     --on-primary: #ffffff;
-    --selected: #15243a;
-    --ring: #5b93d6;
-    --focus: #8fd11a55;
+    --selected: #212f47;
+    --ring: #628bd0;
+    --focus: #30e8d355;
     --danger: #f07167;
     --danger-soft: #3a1d20;
     --badge: #3a2f12;
     --badge-text: #f3d27c;
-    --help-text: #c4cfdc;
-    --toast: #263247;
-    --tb1: #06142a;
-    --tb2: #0a1d3a;
-    --tb3: #0f2c55;
-    --desk: #0e1520;
+    --help-text: #cacdd3;
+    --toast: #2f343c;
+    --tb1: #0c1320;
+    --tb2: #121e33;
+    --tb3: #182a47;
+    --desk: #14161a;
   --strong: #8fd11a;
     --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .25);
     --card-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 10px 28px rgba(0, 0, 0, .45);
+    --top-muted: #bdc8db;
+    --top-ink: #1f3a68;
+    --mark: #30e8d3;
+    --primary-shadow: rgba(0, 0, 0, .3);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --brand: #8fb8ec;
-  --brand-2: #a9c9f2;
-  --accent: #8fd11a;
-  --accent-soft: #1d2b10;
-  --accent-ink: #b8e66e;
-  --bg: #0b111b;
-  --panel: #131b28;
-  --panel-2: #0f1622;
-  --field: #0e1521;
-  --line: #222d3e;
-  --line-2: #2e3b50;
-  --row-line: #1a2433;
-  --text: #e5ebf3;
-  --muted: #93a1b5;
-  --faint: #5f6d82;
-  --link: #93bdf0;
-  --primary: #2a66ad;
-  --primary-hover: #3577c4;
+  --brand: #a1b9e3;
+  --brand-2: #b8cbea;
+  --accent: #30e8d3;
+  --accent-soft: #1e3e3f;
+  --accent-ink: #a0eee5;
+  --bg: #101216;
+  --panel: #1b1e23;
+  --panel-2: #16191d;
+  --field: #15171c;
+  --line: #2b2f36;
+  --line-2: #393e46;
+  --row-line: #22252b;
+  --text: #ebedf0;
+  --muted: #9ea2a8;
+  --faint: #6b6f76;
+  --link: #a1b9e3;
+  --primary: #315ca5;
+  --primary-hover: #466cae;
   --on-primary: #ffffff;
-  --selected: #15243a;
-  --ring: #5b93d6;
-  --focus: #8fd11a55;
+  --selected: #212f47;
+  --ring: #628bd0;
+  --focus: #30e8d355;
   --danger: #f07167;
   --danger-soft: #3a1d20;
   --badge: #3a2f12;
   --badge-text: #f3d27c;
-  --help-text: #c4cfdc;
-  --toast: #263247;
-  --tb1: #06142a;
-  --tb2: #0a1d3a;
-  --tb3: #0f2c55;
-  --desk: #0e1520;
+  --help-text: #cacdd3;
+  --toast: #2f343c;
+  --tb1: #0c1320;
+  --tb2: #121e33;
+  --tb3: #182a47;
+  --desk: #14161a;
   --strong: #8fd11a;
   --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 8px 24px rgba(0, 0, 0, .25);
   --card-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 10px 28px rgba(0, 0, 0, .45);
-  color-scheme: dark;
-}
-
-/* ---------- Corinth Pipeworks colours ----------
-   A small easter egg: picking the Corinth Pipeworks logo switches the site to its maroon and steel grey
-   (sampled from the logo: #710030 and #58595b). Picking any other logo brings the usual colours back. */
-:root[data-brand="cpw"] {
-  --brand: #710030;
-  --brand-2: #8a1640;
-  --accent: #b3194f;
-  --accent-soft: #f9ecf1;
-  --accent-ink: #710030;
-  --bg: #f3f2f3;
-  --panel-2: #faf8f9;
-  --line: #e7e3e5;
-  --line-2: #d4ced1;
-  --row-line: #f2eef0;
-  --text: #1f1a1c;
-  --muted: #6b6466;
-  --faint: #a69ea1;
-  --link: #8a1640;
-  --primary: #710030;
-  --primary-hover: #8e0f40;
-  --selected: #f8edf1;
-  --ring: #710030;
-  --focus: #b3194f55;
-  --help-text: #3d3538;
-  --toast: #2a2124;
-  --tb1: #4c0020;
-  --tb2: #710030;
-  --tb3: #8c1846;
-  --desk: #ebe8e9;
-  --top-muted: #e6cbd5;
-  --top-ink: #710030;
-  --mark: #d9d9db;
-  --strong: #5f9e00;
-  --primary-shadow: rgba(113, 0, 48, .2);
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-brand="cpw"]:not([data-theme="light"]) {
-    --brand: #f0a8c2;
-    --brand-2: #f5bfd2;
-    --accent: #e04a82;
-    --accent-soft: #33121f;
-    --accent-ink: #f6b4cb;
-    --bg: #130f11;
-    --panel: #1d171a;
-    --panel-2: #171215;
-    --field: #161114;
-    --line: #31282c;
-    --line-2: #42373c;
-    --row-line: #251e21;
-    --text: #efe8eb;
-    --muted: #ab9ea4;
-    --faint: #6e6166;
-    --link: #f2a9c3;
-    --primary: #9a1b4b;
-    --primary-hover: #b1275a;
-    --selected: #2d1721;
-    --ring: #d65b88;
-    --focus: #e04a8255;
-    --help-text: #d6c9ce;
-    --toast: #33262c;
-    --tb1: #210010;
-    --tb2: #3a061b;
-    --tb3: #561130;
-    --desk: #171215;
-    --top-muted: #d7b3c1;
-    --top-ink: #710030;
-    --mark: #c9c9cc;
-    --strong: #8fd11a;
-    --primary-shadow: rgba(0, 0, 0, .3);
-  }
-}
-:root[data-brand="cpw"][data-theme="dark"] {
-  --brand: #f0a8c2;
-  --brand-2: #f5bfd2;
-  --accent: #e04a82;
-  --accent-soft: #33121f;
-  --accent-ink: #f6b4cb;
-  --bg: #130f11;
-  --panel: #1d171a;
-  --panel-2: #171215;
-  --field: #161114;
-  --line: #31282c;
-  --line-2: #42373c;
-  --row-line: #251e21;
-  --text: #efe8eb;
-  --muted: #ab9ea4;
-  --faint: #6e6166;
-  --link: #f2a9c3;
-  --primary: #9a1b4b;
-  --primary-hover: #b1275a;
-  --selected: #2d1721;
-  --ring: #d65b88;
-  --focus: #e04a8255;
-  --help-text: #d6c9ce;
-  --toast: #33262c;
-  --tb1: #210010;
-  --tb2: #3a061b;
-  --tb3: #561130;
-  --desk: #171215;
-  --top-muted: #d7b3c1;
-  --top-ink: #710030;
-  --mark: #c9c9cc;
-  --strong: #8fd11a;
+  --top-muted: #bdc8db;
+  --top-ink: #1f3a68;
+  --mark: #30e8d3;
   --primary-shadow: rgba(0, 0, 0, .3);
+  color-scheme: dark;
 }
 
 /* ---------- Size ----------
