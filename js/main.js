@@ -40,6 +40,12 @@ function toast(msg, isError = false) {
 const selected = () => vouchers.filter((v) => v.on && v.user);
 /** Text in the app's language. */
 const t = (key, vars) => tr(settings.uiLang, key, vars);
+/** Sets a translated text and remembers its key, so the page can be measured in every language. */
+function setT(el, key, vars) {
+  el.textContent = key ? t(key, vars) : '';
+  el.dataset.tk = key;
+  el.dataset.tv = vars ? JSON.stringify(vars) : '';
+}
 const plural = (n, noun) => count(settings.uiLang, n, noun);
 const nextFrame = () => new Promise((r) => setTimeout(r, 0));
 
@@ -254,15 +260,16 @@ function updateCounts() {
   const n = selected().length;
   $('#count').textContent = vouchers.length === n ? String(n) : `${n} / ${vouchers.length}`;
   const allOn = vouchers.length && vouchers.every((v) => v.on);
-  $('#toggle-all').textContent = allOn ? t('selectNone') : t('selectAll');
+  setT($('#toggle-all'), allOn ? 'selectNone' : 'selectAll');
   $('#toggle-all').hidden = !vouchers.length;
   $('#clear-all').hidden = !vouchers.length;
   const pages = Math.ceil(n / A4.perPage);
-  $('#a4-info').textContent = n ? t('a4Info', { cards: plural(n, 'card'), pages: plural(pages, 'page') }) : '';
+  if (n) setT($('#a4-info'), 'a4Info', { cards: plural(n, 'card'), pages: plural(pages, 'page') });
+  else setT($('#a4-info'), '');
   const labels = n * Math.max(1, settings.copies || 1);
   for (const id of ['#dl-zpl', '#copy-zpl', '#print-label', '#print-a4']) $(id).disabled = !n;
   const dl = $('#dl-zpl-label');
-  if (dl) dl.textContent = n ? t('dlZplN', { n: plural(labels, 'label') }) : t('dlZpl');
+  if (dl) setT(dl, n ? 'dlZplN' : 'dlZpl', n ? { n: plural(labels, 'label') } : undefined);
 }
 
 // ---------- import ----------
@@ -348,9 +355,9 @@ function newSample() {
   const meter = $('#gen-meter');
   meter.dataset.level = st.level;
   meter.firstElementChild.style.width = Math.min(100, Math.max(8, (st.bits / 90) * 100)) + '%';
-  $('#gen-strength').textContent = t({ weak: 'strWeak', fair: 'strFair', strong: 'strStrong' }[st.level]);
+  setT($('#gen-strength'), { weak: 'strWeak', fair: 'strFair', strong: 'strStrong' }[st.level]);
   const [ex] = makeVouchers({ ...g, count: 1 }, new Set(vouchers.map((v) => v.user)));
-  $('#gen-example').textContent = t('genExample', { u: ex.user, p: ex.pass });
+  setT($('#gen-example'), 'genExample', { u: ex.user, p: ex.pass });
 }
 
 function bindGenerator() {
@@ -674,7 +681,7 @@ function translatePage() {
   applyI18n(settings.uiLang);
   renderLangs();
   renderThemes();
-  $('#made-by').textContent = t('madeBy');
+  setT($('#made-by'), 'madeBy');
   newSample();
 }
 
@@ -783,7 +790,8 @@ async function renderPreview() {
   $('#pg-n').value = String(previewView + 1);
   $('#pg-n').max = String(previewViews);
   $('#pg-total').textContent = String(previewViews);
-  $('#pg-what').textContent = a4 ? '' : t('labelsRange', { a: from + 1, b: from + shown.length, n: cards.length });
+  if (a4) setT($('#pg-what'), '');
+  else setT($('#pg-what'), 'labelsRange', { a: from + 1, b: from + shown.length, n: cards.length });
   $('#pg-prev').disabled = previewView === 0;
   $('#pg-next').disabled = previewView >= previewViews - 1;
 }
@@ -1073,11 +1081,7 @@ function fitLayout() {
   let z = zoomOf();
   for (let i = 0; i < 2; i++) {
     root.style.setProperty('--list-min', vouchers.length ? '160px' : '0px');
-    root.dataset.measure = '';
-    // offsetHeight is in the page's own pixels, so the zoom doesn't change it.
-    const layoutH = $('.layout').offsetHeight;
-    const need = Math.ceil($('.topbar').offsetHeight + layoutH + $('.foot').offsetHeight) + 2;
-    delete root.dataset.measure;
+    const { layoutH, need } = measureNeed();
     z = window.fitZoom ? window.fitZoom(need) : 1;
     root.style.setProperty('--layout-h', layoutH + 'px');
     const key = `${z}|${need}|${innerWidth}x${innerHeight}`;
@@ -1085,6 +1089,36 @@ function fitLayout() {
     lastFit = key;
   }
   sizePreview();
+}
+
+/** The height the page needs, measured with the texts of every language and the tallest kept,
+ *  so switching language never changes the page size. The texts are put back before the
+ *  browser paints, so nothing flickers. */
+function measureNeed() {
+  const root = document.documentElement;
+  const lang = root.lang;
+  const texts = $$('[data-i18n], [data-tk]').map((el) => [el, el.textContent]);
+  const htmls = $$('[data-i18n-html]').map((el) => [el, el.innerHTML]);
+  let layoutH = 0;
+  let need = 0;
+  root.dataset.measure = '';
+  for (const { code } of LANGS) {
+    root.lang = code;
+    for (const [el] of texts) {
+      const key = el.dataset.tk ?? el.dataset.i18n;
+      el.textContent = key ? tr(code, key, el.dataset.tv ? JSON.parse(el.dataset.tv) : {}) : '';
+    }
+    for (const [el] of htmls) el.innerHTML = tr(code, el.dataset.i18nHtml);
+    // offsetHeight is in the page's own pixels, so the zoom doesn't change it.
+    const h = $('.layout').offsetHeight;
+    layoutH = Math.max(layoutH, h);
+    need = Math.max(need, Math.ceil($('.topbar').offsetHeight + h + $('.foot').offsetHeight) + 2);
+  }
+  delete root.dataset.measure;
+  root.lang = lang;
+  for (const [el, text] of texts) el.textContent = text;
+  for (const [el, html] of htmls) el.innerHTML = html;
+  return { layoutH, need };
 }
 
 /** Sizes the preview to its box: an A4 page as tall as the box, Zebra labels as wide as that page. */
