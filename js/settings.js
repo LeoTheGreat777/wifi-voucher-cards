@@ -19,11 +19,11 @@ const BASE = Object.freeze({
   ssid: 'Guest_WiFi',
   wifiKey: '',
   // Printer
-  labelSize: '90x50', // Zebra label size: '90x50' | '103x78' (the printers are all 203 dpi)
-  darkness: '',
+  labelSize: '103x78', // Zebra label size: '103x78' | '90x50' (the printers are all 203 dpi)
+  darkness: 15,
   speed: '',
   offsetX: 0, // mm
-  offsetY: 0, // mm
+  offsetY: 4.5, // mm
   copies: 1,
   output: 'zebra', // 'zebra' | 'a4'
   addTab: 'file', // how vouchers are added: 'file' | 'type' | 'gen'
@@ -85,6 +85,14 @@ export function loadSettings(detectedLang) {
     const v = s.validity || {};
     if (!v.d && v.h === 12 && !v.m) s.validity = { ...BASE.validity };
     s.v8h = true;
+  }
+  // New Zebra defaults (2026-10-20): 103 x 78 mm labels, darkness 15, shifted down 4.5 mm.
+  // Applied once to settings saved before then; after that the browser keeps whatever is chosen.
+  if (!saved.zebra103) {
+    s.labelSize = BASE.labelSize;
+    if (s.darkness === '' || s.darkness == null) s.darkness = BASE.darkness;
+    if (!s.offsetY) s.offsetY = BASE.offsetY;
+    s.zebra103 = true;
   }
   // Uppercase letters (ABC) became part of the default codes; turn them on once.
   if (!saved.genUp) {

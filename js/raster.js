@@ -90,7 +90,7 @@ export function thicken(bits, w, h, only = null) {
  * instead of ragged. Dark colours print solid. With 'dither', light colours become an even
  * dot pattern with a solid outline; with 'threshold' they are left white.
  */
-export function logoBits(img, w, h, style = 'dither') {
+export function logoBits(img, w, h, style = 'dither', bold = false) {
   const S = 4;
   const c = document.createElement('canvas');
   c.width = w * S;
@@ -152,7 +152,7 @@ export function logoBits(img, w, h, style = 'dither') {
   // Thin dark lines and small text in the logo are made at least two dots thick.
   const solid = new Uint8Array(w * h);
   for (let d = 0; d < w * h; d++) solid[d] = kind[d] === 1 ? 1 : 0;
-  thicken(bits, w, h, solid);
+  if (bold) thicken(bits, w, h, solid);
   // Light areas get a solid edge where they meet white paper, so their shape stays sharp.
   if (style !== 'threshold')
     for (let y = 0; y < h; y++)
@@ -202,7 +202,7 @@ export function rasterCard(v, s, o) {
     ctx.fillText(t, x * k, y * k);
     // Small text (under ~3.5 mm) gets a thin outline as well: its lines are only one or two
     // dots thick, and a thermal printer loses lines that thin.
-    if (f.size * k < 28) {
+    if (G.bold && f.size * k < 28) {
       ctx.lineWidth = 0.6;
       ctx.lineJoin = 'round';
       ctx.strokeText(t, x * k, y * k);
@@ -243,9 +243,9 @@ export function rasterCard(v, s, o) {
   // Antialiased drawing -> pure black and white.
   const px = ctx.getImageData(0, 0, W, H).data;
   const bits = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) bits[i] = px[i * 4 + 1] < 160 ? 1 : 0;
+  for (let i = 0; i < W * H; i++) bits[i] = px[i * 4 + 1] < (G.bold ? 160 : 150) ? 1 : 0;
   // Small text has lines one dot thin, which the printer drops; make them two dots.
-  thicken(bits, W, H);
+  if (G.bold) thicken(bits, W, H);
 
   // Logo and QR go straight onto the dot grid so they stay sharp.
   if (L.logo && o.logo) {
@@ -253,10 +253,10 @@ export function rasterCard(v, s, o) {
     const ly = Math.round(L.logo.y * k);
     const lw = Math.round(L.logo.w * k);
     const lh = Math.round(L.logo.h * k);
-    const key = `${lw}x${lh}:${o.logoStyle}`;
+    const key = `${lw}x${lh}:${o.logoStyle}:${G.bold ? 'b' : ''}`;
     let lb = o.logoCache?.get(key);
     if (!lb) {
-      lb = logoBits(o.logo, lw, lh, o.logoStyle);
+      lb = logoBits(o.logo, lw, lh, o.logoStyle, G.bold);
       o.logoCache?.set(key, lb);
     }
     for (let y = 0; y < lh; y++)

@@ -9,6 +9,8 @@ export const CARD_H = 50;
 export const SIZES = {
   '90x50': {
     w: 90, h: 50, pad: 4.5, bar: 1.4, barColour: 1.6,
+    // Its small text is so small that the Zebra drops thin lines, so it prints bolder.
+    bold: true,
     logo: { y: 3.9, w: 36, h: 10.5 }, headGap: 3,
     logoTitle: { size: 4.6, y: 9.4, yAlone: 11 }, logoSub: { size: 2.5, y: 13.4 },
     icon: { y: 4.1, size: 10 },
@@ -20,7 +22,7 @@ export const SIZES = {
     footer: { size: 2.15, min: 1.4, y: 45.2 },
   },
   '103x78': {
-    w: 103, h: 78, pad: 5.5, bar: 1.8, barColour: 2,
+    w: 103, h: 78, pad: 5.5, bar: 1.8, barColour: 2, bold: false,
     logo: { y: 5, w: 50, h: 17 }, headGap: 3.5,
     logoTitle: { size: 6.2, y: 13, yAlone: 15.4 }, logoSub: { size: 3.2, y: 18.6 },
     icon: { y: 5, size: 15 },
