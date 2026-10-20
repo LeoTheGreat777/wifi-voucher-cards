@@ -10,7 +10,7 @@ Turn guest Wi-Fi vouchers into good-looking cards, ready to hand out.
 </picture>
 
 - **Add vouchers** from the PDF or CSV your Wi-Fi system gives you (FortiGate, UniFi, pfSense, OPNsense, MikroTik, Cisco, Omada and others), from any text file, by typing or pasting them, or by generating random codes.
-- **Print on a Zebra label printer** (ZD421, 203 dpi, 90 × 50 mm labels) with a ready-made ZPL file, or through the normal printer driver.
+- **Print on a Zebra label printer** (ZD421, 203 dpi, 90 × 50 or 103 × 78 mm labels): send straight to the printer with Zebra Browser Print, use a ready-made ZPL file, or print through the normal printer driver.
 - **Print on A4** for big batches: 10 cards per page with cut lines, or save as PDF.
 - **Everything stays in your browser.** PDFs are read on your computer and nothing is uploaded anywhere.
 
@@ -43,13 +43,14 @@ Your card design and logos are remembered in this browser. The voucher list is c
 
 The ZPL file holds one label per voucher, each drawn as a 1-bit image at the printer's own resolution, so the label looks exactly like the preview.
 
-- **Zebra Setup Utilities** (Windows): select the printer → *Open Communication With Printer* → *Send File*.
+- **Send to printer** button: works when [Zebra Browser Print](https://www.zebra.com/us/en/support-downloads/software/printer-software/browser-print.html) is installed on the computer and this site is allowed in it.
+- **Zebra Setup Utilities** (Windows): click *Copy ZPL*, select the printer → *Open Communication With Printer*, paste and click *Send To Printer*. Or *Open Printer Tools* → *Action* → *Send File* and pick the .zpl file.
 - **Shared printer on Windows**: `copy /b vouchers.zpl \\localhost\ZD421` (use the printer's share name).
 - **Network printer**: `nc <printer-ip> 9100 < vouchers.zpl`.
 
-Under *Printer settings* you can switch to 300 dpi, print more than one copy of each card, set darkness or speed, and shift the print if it isn't centred on the label.
+Under *Printer settings* you can choose the label size (90 × 50 or 103 × 78 mm), print more than one copy of each card, set darkness or speed, and shift the print if it isn't centred on the label.
 
-If you print with the driver instead, set the paper size to 90 × 50 mm, scale 100%, and no margins.
+If you print with the driver instead, set the paper size to the label size, scale 100%, and no margins.
 
 ## Input formats
 

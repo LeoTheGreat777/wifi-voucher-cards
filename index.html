@@ -218,7 +218,7 @@
           <h2><span class="step">3</span><span data-i18n="step3">Print</span></h2>
           <div class="tabs" role="tablist">
             <button role="tab" data-out="zebra" type="button">
-              <strong data-i18n="tabZebra">Zebra label</strong><span data-i18n="tabZebraSub">90 × 50 mm, one card per label</span>
+              <strong data-i18n="tabZebra">Zebra label</strong><span id="zebra-sub">90 × 50 mm, one card per label</span>
             </button>
             <button role="tab" data-out="a4" type="button">
               <strong data-i18n="tabA4">A4 sheet</strong><span data-i18n="tabA4Sub">10 cards per page, for big batches</span>
@@ -231,14 +231,19 @@
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 <span id="dl-zpl-label">Download ZPL file</span>
               </button>
+              <button class="btn" id="send-zpl" type="button" data-i18n="sendZpl">Send to printer</button>
               <button class="btn" id="copy-zpl" type="button" data-i18n="copyZpl">Copy ZPL</button>
               <button class="btn" id="print-label" type="button" data-i18n="printDriver">Print with driver</button>
+            </div>
+            <div class="bp-help" id="bp-help" hidden>
+              <p data-i18n-html="bpHelp"></p>
+              <button class="btn" id="bp-close" type="button" data-i18n="close">Close</button>
             </div>
             <details class="printer">
               <summary><span data-i18n="printerSettings">Printer settings</span> <span class="muted" id="printer-summary"></span></summary>
               <div class="fields">
-                <label class="field"><span data-i18n="resolution">Resolution</span>
-                  <select data-s="dpi" data-num><option value="203">203 dpi (ZD421)</option><option value="300">300 dpi</option></select>
+                <label class="field"><span data-i18n="labelSize">Label size</span>
+                  <select data-s="labelSize"><option value="90x50">90 × 50 mm</option><option value="103x78">103 × 78 mm</option></select>
                 </label>
                 <label class="field"><span data-i18n="copies">Copies of each card</span><input type="number" min="1" max="20" data-s="copies" data-num></label>
                 <label class="field"><span data-i18n="darkness">Darkness (0–30)</span><input type="number" min="0" max="30" data-s="darkness" data-i18n-ph="printerDefault"></label>

@@ -136,7 +136,5 @@ export function labelZpl(bmp, opts = {}) {
   return lines.join('\n');
 }
 
-/** 203 dpi = 8 dots/mm, 300 dpi = 12 dots/mm. */
-export function dotsPerMm(dpi) {
-  return dpi >= 600 ? 24 : dpi >= 300 ? 12 : 8;
-}
+/** The ZD421 prints at 203 dpi: 8 dots per mm. */
+export const DOTS_PER_MM = 8;

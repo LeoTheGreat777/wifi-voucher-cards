@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bitmapToHexRows, compressRows, decompressRows, labelZpl, dotsPerMm } from '../js/zpl.js';
+import { bitmapToHexRows, compressRows, decompressRows, labelZpl, DOTS_PER_MM } from '../js/zpl.js';
 
 function bitmap(width, height, fn) {
   const bits = new Uint8Array(width * height);
@@ -32,7 +32,7 @@ test('compression round-trips on a busy label-sized image', () => {
 });
 
 test('label has the ZD421 90 x 50 mm size at 203 dpi', () => {
-  const k = dotsPerMm(203);
+  const k = DOTS_PER_MM;
   const z = labelZpl(bitmap(90 * k, 50 * k, () => 0), { copies: 2, darkness: 18, name: 'user^01' });
   assert.match(z, /^\^XA/);
   assert.match(z, /\^PW720\n\^LL400/);
@@ -40,4 +40,22 @@ test('label has the ZD421 90 x 50 mm size at 203 dpi', () => {
   assert.match(z, /~SD18/);
   assert.match(z, /\^PQ2\n\^XZ$/);
   assert.match(z, /\^FX user01/); // ^ removed from the comment
+});
+
+test('103 x 78 mm labels are 824 x 624 dots and everything fits on them', async () => {
+  const { layoutCard, labelGeom } = await import('../js/card.js');
+  const G = labelGeom('103x78');
+  assert.equal(G.w * DOTS_PER_MM, 824);
+  assert.equal(G.h * DOTS_PER_MM, 624);
+  const s = { title: 'Guest_WiFi', subtitle: 'Valid for 8 hours', footer: 'Connect to the guest network.', userLabel: 'User ID', passLabel: 'Password' };
+  for (const size of ['90x50', '103x78']) {
+    const g = labelGeom(size);
+    for (const opts of [{}, { logo: { w: 400, h: 150 }, qr: true }]) {
+      const L = layoutCard({ user: 'guest0001', pass: 'abcd1234' }, s, { ...opts, size });
+      assert.ok(L.box.x + L.box.w <= g.w && L.box.y + L.box.h < L.footer.y, size);
+      assert.ok(L.footer.y < g.h, size);
+      if (L.qr) assert.ok(L.qr.x + L.qr.size <= g.w && L.qr.y + L.qr.size <= g.h, size);
+      if (L.logo) assert.ok(L.logo.x + L.logo.w < L.title.x, size);
+    }
+  }
 });

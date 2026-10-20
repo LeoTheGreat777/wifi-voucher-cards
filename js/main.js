@@ -1,8 +1,8 @@
 import { parseVouchers, parseLines, parseBest } from './parse.js';
 import { makeCode, makeVouchers, strength } from './generate.js';
-import { cardSvg, sheetSvg, A4 } from './card.js';
+import { cardSvg, sheetSvg, A4, labelGeom } from './card.js';
 import { measure, loadFonts, rasterCard, bitmapToCanvas } from './raster.js';
-import { labelZpl, dotsPerMm } from './zpl.js';
+import { labelZpl, DOTS_PER_MM } from './zpl.js';
 import { makeQr, wifiPayload } from './qr.js';
 import { defaults, cardTextFor, loadSettings, saveSettings, loadVouchers, saveVouchers, listLogos, findLogo, addLogo, deleteLogo, setLogoPalette, updateLogo } from './settings.js';
 import { DEFAULT_PALETTE, paletteFromImage, themeCss, cardColours, faviconFor } from './palette.js';
@@ -267,7 +267,7 @@ function updateCounts() {
   if (n) setT($('#a4-info'), 'a4Info', { cards: plural(n, 'card'), pages: plural(pages, 'page') });
   else setT($('#a4-info'), '');
   const labels = n * Math.max(1, settings.copies || 1);
-  for (const id of ['#dl-zpl', '#copy-zpl', '#print-label', '#print-a4']) $(id).disabled = !n;
+  for (const id of ['#dl-zpl', '#send-zpl', '#copy-zpl', '#print-label', '#print-a4']) $(id).disabled = !n;
   const dl = $('#dl-zpl-label');
   if (dl) setT(dl, n ? 'dlZplN' : 'dlZpl', n ? { n: plural(labels, 'label') } : undefined);
 }
@@ -434,7 +434,11 @@ function fillForm() {
   }
   for (const el of $$('[data-show]')) el.textContent = settings[el.dataset.show];
   document.body.classList.toggle('show-qr', !!settings.qr);
-  const p = [`${settings.dpi} dpi`];
+  const G = labelGeom(settings.labelSize);
+  const size = `${G.w} × ${G.h} mm`;
+  setT($('#zebra-sub'), 'tabZebraSub', { size });
+  $('#preview').style.setProperty('--card-ar', `${G.w} / ${G.h}`);
+  const p = [size, '203 dpi'];
   if (settings.darkness !== '') p.push(t('darknessN', { n: settings.darkness }));
   if (settings.offsetX || settings.offsetY) p.push(t('shifted'));
   $('#card-lang').value = settings.lang;
@@ -460,7 +464,8 @@ function bindForm() {
       saveSettings(settings);
       for (const s of $$(`[data-show="${k}"]`)) s.textContent = val;
       if (k === 'qr') document.body.classList.toggle('show-qr', !!val);
-      if (['dpi', 'darkness', 'offsetX', 'offsetY', 'copies'].includes(k)) fillForm();
+      if (['labelSize', 'darkness', 'offsetX', 'offsetY', 'copies'].includes(k)) fillForm();
+      if (k === 'labelSize') sizePreview();
       updateCounts();
       schedulePreview();
     });
@@ -506,7 +511,7 @@ function bindForm() {
   });
   $('#reset-design').addEventListener('click', () => {
     const keep = Object.fromEntries(
-      ['uiLang', 'theme', 'lang', 'validity', 'gen', 'dpi', 'darkness', 'speed', 'offsetX', 'offsetY', 'copies', 'output'].map((k) => [k, settings[k]])
+      ['uiLang', 'theme', 'lang', 'validity', 'gen', 'labelSize', 'darkness', 'speed', 'offsetX', 'offsetY', 'copies', 'output'].map((k) => [k, settings[k]])
     );
     settings = { ...defaults(settings.lang), ...keep, ...cardTextFor(settings.lang, settings.validity) };
     saveSettings(settings);
@@ -766,7 +771,7 @@ async function renderPreview() {
         ? plural(previewViews, 'page')
         : '';
   } else {
-    const dpmm = dotsPerMm(settings.dpi);
+    const dpmm = DOTS_PER_MM;
     note.innerHTML = sample
       ? `<span class="sample-badge">${t('sample')}</span> ${t('zebraNote')}`
       : t('zebraNote') + ' · ' + plural(cards.length, 'label');
@@ -817,7 +822,8 @@ function viewerFit() {
   const narrow = box.clientWidth < 640; // phones: the arrows sit at the bottom instead of the sides
   const aw = Math.max(120, box.clientWidth - (narrow ? 24 : 160));
   const ah = Math.max(120, box.clientHeight - (narrow ? 150 : 120));
-  const ratio = viewer.a4 ? 210 / 297 : 90 / 50;
+  const G = labelGeom(settings.labelSize);
+  const ratio = viewer.a4 ? 210 / 297 : G.w / G.h;
   let w = Math.min(aw, ah * ratio);
   if (!viewer.a4) w = Math.min(w, 1200);
   item.style.width = Math.floor(w) + 'px';
@@ -846,7 +852,7 @@ async function viewerShow(i) {
       cutNote: t('cutNote'),
     });
   } else {
-    const bmp = rasterCard(d.cards[viewer.i], settings, { dpmm: dotsPerMm(settings.dpi), logo: d.logo?.img || null, logoStyle: settings.logoStyle, qr: d.qr, logoCache: logoBitsCache });
+    const bmp = rasterCard(d.cards[viewer.i], settings, { dpmm: DOTS_PER_MM, logo: d.logo?.img || null, logoStyle: settings.logoStyle, qr: d.qr, logoCache: logoBitsCache });
     const img = new Image();
     img.alt = '';
     img.src = bitmapToCanvas(bmp).toDataURL('image/png');
@@ -971,7 +977,7 @@ async function buildZpl(onProgress) {
   await loadFonts();
   const logo = await currentLogo();
   const qr = currentQr();
-  const dpmm = dotsPerMm(settings.dpi);
+  const dpmm = DOTS_PER_MM;
   const list = selected();
   const out = [];
   for (let i = 0; i < list.length; i++) {
@@ -1038,6 +1044,56 @@ async function copyZpl() {
   }
 }
 
+// ---------- straight to the printer (Zebra Browser Print) ----------
+// Zebra's free Browser Print app runs on the computer the printer is plugged into and
+// accepts print jobs from web pages it has been told to trust.
+
+const BROWSER_PRINT = ['https://127.0.0.1:9101', 'http://127.0.0.1:9100'];
+
+async function browserPrint(path, body) {
+  let lastErr;
+  for (const base of BROWSER_PRINT) {
+    try {
+      const res = await fetch(base + path, { method: body == null ? 'GET' : 'POST', body, signal: AbortSignal.timeout(body == null ? 4000 : 120000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
+}
+
+async function zebraPrinter() {
+  const def = (await browserPrint('/default?type=printer')).trim();
+  if (def) return JSON.parse(def);
+  const all = JSON.parse((await browserPrint('/available')) || '{}');
+  return (all.printer || [])[0] || null;
+}
+
+async function sendToPrinter() {
+  const btn = $('#send-zpl');
+  $('#bp-help').hidden = true;
+  let printer = null;
+  try {
+    printer = await zebraPrinter();
+  } catch {
+    printer = null;
+  }
+  if (!printer) {
+    $('#bp-help').hidden = false;
+    sizePreview();
+    return;
+  }
+  const zpl = await withBusy(btn, t('preparing'), buildZpl);
+  try {
+    await browserPrint('/write', JSON.stringify({ device: printer, data: zpl }));
+    toast(t('sentToPrinter', { n: plural(selected().length * (settings.copies || 1), 'label'), name: printer.name || 'Zebra' }));
+  } catch {
+    toast(t('sendFailed'), true);
+  }
+}
+
 async function printCards(kind) {
   await loadFonts();
   const logo = await currentLogo();
@@ -1046,11 +1102,14 @@ async function printCards(kind) {
   const root = $('#print-root');
   const html = [];
   if (kind === 'label') {
-    $('#page-style').textContent = '@page { size: 90mm 50mm; margin: 0; }';
+    const G = labelGeom(settings.labelSize);
+    $('#page-style').textContent = `@page { size: ${G.w}mm ${G.h}mm; margin: 0; }`;
+    root.style.setProperty('--label-w', G.w + 'mm');
+    root.style.setProperty('--label-h', G.h + 'mm');
     const copies = Math.max(1, settings.copies || 1);
     for (const v of list)
       for (let c = 0; c < copies; c++)
-        html.push(`<div class="label-page">${cardSvg(v, settings, { mode: 'mono', measure, logo, qr })}</div>`);
+        html.push(`<div class="label-page">${cardSvg(v, settings, { mode: 'mono', measure, logo, qr, size: settings.labelSize })}</div>`);
   } else {
     $('#page-style').textContent = '@page { size: A4 portrait; margin: 0; }';
     const pages = Math.ceil(list.length / A4.perPage);
@@ -1131,8 +1190,9 @@ function sizePreview() {
   box.style.setProperty('--ph', Math.floor(pageW * 297 / 210) + 'px');
   // Labels are about as wide as an A4 page in the same box, so both look like the same scale,
   // but never so small that the text is hard to read.
-  const cw = Math.floor(Math.min(w, (h - 8) * 90 / 50, Math.max(pageW, 260)));
-  const ch = cw * 50 / 90;
+  const G = labelGeom(settings.labelSize);
+  const cw = Math.floor(Math.min(w, (h - 8) * G.w / G.h, Math.max(pageW, 260)));
+  const ch = cw * G.h / G.w;
   const per = Math.max(1, Math.min(3, Math.floor((h + 14) / (ch + 14))));
   box.style.setProperty('--cw', cw + 'px');
   if (per !== previewPer) {
@@ -1267,6 +1327,11 @@ function init() {
   for (const b of $$('#add-tabs [data-add]')) b.addEventListener('click', () => setAddTab(b.dataset.add));
   $('#dl-zpl').addEventListener('click', downloadZpl);
   $('#copy-zpl').addEventListener('click', copyZpl);
+  $('#send-zpl').addEventListener('click', sendToPrinter);
+  $('#bp-close').addEventListener('click', () => {
+    $('#bp-help').hidden = true;
+    sizePreview();
+  });
   $('#print-label').addEventListener('click', () => printCards('label'));
   $('#print-a4').addEventListener('click', () => printCards('a4'));
 

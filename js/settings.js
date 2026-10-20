@@ -19,7 +19,7 @@ const BASE = Object.freeze({
   ssid: 'Guest_WiFi',
   wifiKey: '',
   // Printer
-  dpi: 203,
+  labelSize: '90x50', // Zebra label size: '90x50' | '103x78' (the printers are all 203 dpi)
   darkness: '',
   speed: '',
   offsetX: 0, // mm
@@ -69,6 +69,9 @@ export function loadSettings(detectedLang) {
     s.ink = BASE.ink;
   }
   if (!String(s.ssid || '').trim()) s.ssid = BASE.ssid;
+  // Only 203 dpi printers are used, so the resolution setting is gone.
+  delete s.dpi;
+  if (!['90x50', '103x78'].includes(s.labelSize)) s.labelSize = BASE.labelSize;
   s.gen = { ...GEN_DEFAULTS, ...(saved.gen || {}) };
   // Earlier versions used capitalised labels; move untouched ones to the new defaults.
   const OLD_LABELS = { USERNAME: 1, PASSWORD: 1, 'ΟΝΟΜΑ ΧΡΗΣΤΗ': 1, ΚΩΔΙΚΟΣ: 1, UTILIZATOR: 1, PAROLĂ: 1, 'ID χρήστη': 1, Κωδικός: 1, 'ID utilizator': 1, Parolă: 1 };
