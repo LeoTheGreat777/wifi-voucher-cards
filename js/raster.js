@@ -54,6 +54,36 @@ function logoInks(px) {
 const dist = (a, b) => 2 * (a[0] - b[0]) ** 2 + 4 * (a[1] - b[1]) ** 2 + 3 * (a[2] - b[2]) ** 2;
 
 /**
+ * A thermal printer drops a line that is only one dot thin, so the tops of letters, thin
+ * stems and the ends of curves go missing on paper. This makes every black line at least
+ * two dots thick, across and down. Only dots where `only` is set (if given) are looked at.
+ */
+export function thicken(bits, w, h, only = null) {
+  const src = only ? only : bits;
+  const add = new Uint8Array(w * h);
+  // Down: a black dot with white above and below gets the dot under it (or over it at the edge).
+  for (let x = 0; x < w; x++)
+    for (let y = 0; y < h; y++) {
+      const d = y * w + x;
+      if (!src[d]) continue;
+      const up = y > 0 && src[d - w];
+      const down = y < h - 1 && src[d + w];
+      if (!up && !down) add[y < h - 1 ? d + w : d - w] = 1;
+    }
+  // Across: the same for one-dot-wide stems.
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const d = y * w + x;
+      if (!src[d]) continue;
+      const left = x > 0 && src[d - 1];
+      const right = x < w - 1 && src[d + 1];
+      if (!left && !right) add[x < w - 1 ? d + 1 : d - 1] = 1;
+    }
+  for (let d = 0; d < w * h; d++) if (add[d]) bits[d] = 1;
+  return bits;
+}
+
+/**
  * Turns the logo into black dots at an exact size in dots, for a 203 dpi thermal printer.
  * The logo is drawn 4x larger, each pixel is matched to one of the logo's flat colours, and
  * every printer dot looks at the 16 pixels under it. That keeps edges and thin lines clean
@@ -119,6 +149,10 @@ export function logoBits(img, w, h, style = 'dither') {
       bits[d] = tone[lightInk] > (BAYER4[(y % 4) * 4 + (x % 4)] + 0.5) / 16 ? 1 : 0;
     }
   }
+  // Thin dark lines and small text in the logo are made at least two dots thick.
+  const solid = new Uint8Array(w * h);
+  for (let d = 0; d < w * h; d++) solid[d] = kind[d] === 1 ? 1 : 0;
+  thicken(bits, w, h, solid);
   // Light areas get a solid edge where they meet white paper, so their shape stays sharp.
   if (style !== 'threshold')
     for (let y = 0; y < h; y++)
@@ -166,6 +200,13 @@ export function rasterCard(v, s, o) {
     ctx.textAlign = align;
     if ('letterSpacing' in ctx) ctx.letterSpacing = `${(f.spacing || 0) * k}px`;
     ctx.fillText(t, x * k, y * k);
+    // Small text (under ~3.5 mm) gets a thin outline as well: its lines are only one or two
+    // dots thick, and a thermal printer loses lines that thin.
+    if (f.size * k < 28) {
+      ctx.lineWidth = 0.6;
+      ctx.lineJoin = 'round';
+      ctx.strokeText(t, x * k, y * k);
+    }
     if ('letterSpacing' in ctx) ctx.letterSpacing = '0px';
   };
 
@@ -202,7 +243,9 @@ export function rasterCard(v, s, o) {
   // Antialiased drawing -> pure black and white.
   const px = ctx.getImageData(0, 0, W, H).data;
   const bits = new Uint8Array(W * H);
-  for (let i = 0; i < W * H; i++) bits[i] = px[i * 4 + 1] < 150 ? 1 : 0;
+  for (let i = 0; i < W * H; i++) bits[i] = px[i * 4 + 1] < 160 ? 1 : 0;
+  // Small text has lines one dot thin, which the printer drops; make them two dots.
+  thicken(bits, W, H);
 
   // Logo and QR go straight onto the dot grid so they stay sharp.
   if (L.logo && o.logo) {
